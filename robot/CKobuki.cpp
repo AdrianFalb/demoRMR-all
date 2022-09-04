@@ -4,11 +4,9 @@
 #include <cstddef>
 #include <iostream>
 
-
-
 // obsluha tty pod unixom
-int set_interface_attribs2 (int fd, int speed, int parity)
-{
+int set_interface_attribs2 (int fd, int speed, int parity) {
+
   /*  struct termios tty;
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd, &tty) != 0)
@@ -47,8 +45,8 @@ int set_interface_attribs2 (int fd, int speed, int parity)
     return 0;
 }
 
-void set_blocking2 (int fd, int should_block)
-{
+void set_blocking2 (int fd, int should_block) {
+
   /*  struct termios tty;
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd, &tty) != 0)
@@ -64,22 +62,17 @@ void set_blocking2 (int fd, int should_block)
         printf ("error %d setting term attributes", errno);*/
 }
 
+int CKobuki::checkChecksum(unsigned char * data) { //najprv hlavicku
 
-
-
-
-int CKobuki::checkChecksum(unsigned char * data)
-{//najprv hlavicku
     unsigned char chckSum = 0;
-    for (int i = 0; i < data[0]+2; i++)
-    {
+    for (int i = 0; i < data[0]+2; i++) {
         chckSum ^= data[i];
     }
     return chckSum;//0 ak je vsetko v poriadku,inak nejake cislo
 }
 
-std::vector<unsigned char> CKobuki::setLed(int led1, int led2)
-{
+std::vector<unsigned char> CKobuki::setLed(int led1, int led2) {
+
     unsigned char message[8] = {0xaa,0x55,0x04,0x0c,0x02,0x00,static_cast<unsigned char>((led1+led2*4)%256),0x00};
     message[7] = message[2] ^ message[3] ^ message[4] ^ message[5] ^ message[6];
     uint32_t pocet;
@@ -87,22 +80,17 @@ std::vector<unsigned char> CKobuki::setLed(int led1, int led2)
         return vystup;
 }
 
+std::vector<unsigned char> CKobuki::setTranslationSpeed(int mmpersec) {
 
-
-
-std::vector<unsigned char> CKobuki::setTranslationSpeed(int mmpersec)
-{
     unsigned char message[14] = { 0xaa,0x55,0x0A,0x0c,0x02,0xf0,0x00,0x01,0x04,static_cast<unsigned char>(mmpersec%256),static_cast<unsigned char>(mmpersec>>8),0x00,0x00,  0x00 };
     message[13] = message[2] ^ message[3] ^ message[4] ^ message[5] ^ message[6] ^ message[7] ^ message[8] ^ message[9] ^ message[10] ^ message[11] ^ message[12];
 
     uint32_t pocet;
     std::vector<unsigned char> vystup(message,message+sizeof(message)/sizeof(message[0]));
         return vystup;
-
 }
 
-std::vector<unsigned char> CKobuki::setRotationSpeed(double radpersec)
-{
+std::vector<unsigned char> CKobuki::setRotationSpeed(double radpersec) {
     int speedvalue = (int)(radpersec * 230.0f / 2.0f);
     unsigned char message[14] = { 0xaa,0x55,0x0A,0x0c,0x02,0xf0,0x00,0x01,0x04,static_cast<unsigned char>(speedvalue % 256),static_cast<unsigned char>(speedvalue >>8),0x01,0x00,  0x00 };
     message[13] = message[2] ^ message[3] ^ message[4] ^ message[5] ^ message[6] ^ message[7] ^ message[8] ^ message[9] ^ message[10] ^ message[11] ^ message[12];
@@ -112,11 +100,10 @@ std::vector<unsigned char> CKobuki::setRotationSpeed(double radpersec)
         return vystup;
 }
 
-std::vector<unsigned char> CKobuki::setArcSpeed(int mmpersec, int radius)
-{
+std::vector<unsigned char> CKobuki::setArcSpeed(int mmpersec, int radius) {
+
     if (radius == 0) {
         return setTranslationSpeed(mmpersec);
-
     }
 
     int speedvalue = mmpersec * ((radius + (radius>0? 230:-230) )/ 2 ) / radius;
@@ -127,8 +114,8 @@ std::vector<unsigned char> CKobuki::setArcSpeed(int mmpersec, int radius)
         return vystup;
 }
 
-std::vector<unsigned char> CKobuki::setSound(int noteinHz, int duration)
-{
+std::vector<unsigned char> CKobuki::setSound(int noteinHz, int duration) {
+
     int notevalue =(int) floor((double)1.0 / ((double)noteinHz*0.00000275) + 0.5);
     unsigned char message[13] = { 0xaa,0x55,0x09,0x0c,0x02,0xf0,0x00,0x03,0x03,static_cast<unsigned char>(notevalue%256),static_cast<unsigned char>(notevalue>>8),static_cast<unsigned char>(duration%256),0x00 };
     message[12] = message[2] ^ message[3] ^ message[4] ^ message[5] ^ message[6] ^ message[7]^ message[8]^ message[9]^ message[10]^ message[11];
@@ -138,14 +125,12 @@ std::vector<unsigned char> vystup(message,message+sizeof(message)/sizeof(message
     return vystup;
 }
 
+std::vector<unsigned char> CKobuki::setDefaultPID() {
 
-
-std::vector<unsigned char> CKobuki::setDefaultPID()
-{
     unsigned char message[23] = { 0xaa,0x55,0x13,0x0c,0x02,0xf0,0x00,0x0D,0x0D,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,  0x00 };
-    message[22]=0;
-    for(int i=0;i<23-3;i++)
-    {
+    message[22] = 0;
+
+    for(int i=0;i<23-3;i++) {
         message[22]=message[22]^message[i+2];
     }
 
@@ -154,12 +139,8 @@ std::vector<unsigned char> CKobuki::setDefaultPID()
         return vystup;
 }
 
+int CKobuki::parseKobukiMessage(TKobukiData &output, unsigned char * data) {
 
-
-
-
-int CKobuki::parseKobukiMessage(TKobukiData &output, unsigned char * data)
-{
     int rtrnvalue = checkChecksum(data);
     //ak je zly checksum,tak kaslat na to
     if (rtrnvalue != 0)
@@ -167,11 +148,11 @@ int CKobuki::parseKobukiMessage(TKobukiData &output, unsigned char * data)
 
     int checkedValue = 1;
     //kym neprejdeme celu dlzku
-    while (checkedValue < data[0])
-    {
+    while (checkedValue < data[0]) {
+
         //basic data subload
-        if (data[checkedValue] == 0x01)
-        {
+        if (data[checkedValue] == 0x01) {
+
             checkedValue++;
             if (data[checkedValue ] != 0x0F)
                 return -1;

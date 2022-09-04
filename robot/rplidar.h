@@ -33,68 +33,73 @@
 #include<string.h>
 #include<stdlib.h>
 
-typedef struct
-{
+typedef struct {
+
     int scanQuality;
     double scanAngle;
     double scanDistance;
-}LaserData;
 
-typedef struct
-{
+} LaserData;
+
+typedef struct {
+
     int numberOfScans;
     LaserData Data[1000];
-}LaserMeasurement;
-class rplidar
-{
+
+} LaserMeasurement;
+
+class rplidar {
+
 public:
+
     int i;
-    rplidar()
-    {
-        WasEnabled=0;
-        ktoreMeranie=-1;
-        kdeJeCele=-1;
-        poslednePoslane=-1;
-        ktoreZapisujem=-1;
-        ktorePosielam=-1;
-        stopMeasurement=0;
+    rplidar() {
+        WasEnabled = 0;
+        ktoreMeranie = -1;
+        kdeJeCele = -1;
+        poslednePoslane = -1;
+        ktoreZapisujem = -1;
+        ktorePosielam = -1;
+        stopMeasurement = 0;
     }
 
-     rplidar(char *comport)
-     {
-         WasEnabled=0;
-         ktoreMeranie=-1;
-         kdeJeCele=-1;
-         poslednePoslane=-1;
-         ktoreZapisujem=-1;
-         ktorePosielam=-1;
-         stopMeasurement=0;
-         int err=connect(comport);
-         if(err==-1)
-         {
+    rplidar(char *comport) {
+
+         WasEnabled = 0;
+         ktoreMeranie = -1;
+         kdeJeCele = -1;
+         poslednePoslane = -1;
+         ktoreZapisujem = -1;
+         ktorePosielam = -1;
+         stopMeasurement = 0;
+
+         int err = connect(comport);
+         if (err == -1) {
              printf("pruuuuser\n");
          }
          enable();
          start();
-     }
-    virtual  ~rplidar()
-    {
+    }
+
+    virtual ~rplidar() {
 
     }
+
 private:
+
     //-ci bolo skontrolovane ze je vsetko ok
     int WasEnabled;
     int stopMeasurement;
-    //--interne uchovane meranie poslednych dvoch a posielame aktualne (poslednych dvoch,aby sme mohli zapisovat kym posielame)
+    //--interne uchovane meranie poslednych dvoch a posielame aktualne (poslednych dvoch, aby sme mohli zapisovat kym posielame)
     LaserMeasurement localMeranie[3];
     //--ze ktore aktualne mame zapisane
-     long long ktoreMeranie;
+    long long ktoreMeranie;
     //--ktore pole ma pouzit na poslanie
     int kdeJeCele;
     int ktorePosielam;
     int ktoreZapisujem;
     //--ktore je posledne odovzdane uzivatelovi
-     long long poslednePoslane;
+    long long poslednePoslane;
     int hCom;
     HANDLE  threadHandle; // handle na vlakno
     int threadID;  // id vlakna
@@ -102,16 +107,17 @@ private:
 public:
 
     //veci na broadcast
-    struct sockaddr_in si_me, si_other,si_posli;
+    struct sockaddr_in si_me, si_other, si_posli;
 
-        int s,  recv_len;
-        unsigned int slen;
-        char buf[50000];
-        void recvCommandUDP();
-        //------------------
+    int s,  recv_len;
+    unsigned int slen;
+    char buf[50000];
+    void recvCommandUDP();
+    //------------------
+
     // pripoji nas na laserovy dialkomer
     int connect(char *comport);
-    //skontroluje funkcnost dialkomeru.. vhodne zavolat pred startom..
+    // skontroluje funkcnost dialkomeru.. vhodne zavolat pred startom..
     //
     int enable();
     //--spustim meranie laserovym dialkomerom
@@ -124,16 +130,16 @@ public:
     unsigned char getUnspecifiedResponse(unsigned char *request);
     //vrati nam aktualne meranie ak vzniklo nove, ak nieje nove meranie v numberOfScans je -1; ak nebolo inicializovane tak -2. ak nieje funkcne spojenie tak -3,ak nieje spustene meranie -4
     LaserMeasurement getMeasurement();
- int vystupvlakno;
+    int vystupvlakno;
+
 private:
 
     //--spustenie merania v novom vlakne (vycitavanie bezi v novom vlakne. treba ho stopnut ak chceme poslat request)
-    static void *laserVlakno(void *param)
-    {
-        rplidar *rplid=(rplidar*)param;
-        rplid->vystupvlakno=rplid->measure();
+    static void *laserVlakno(void *param) {
+
+        rplidar *rplid = (rplidar*)param;
+        rplid->vystupvlakno = rplid->measure();
 
         return &(rplid->vystupvlakno);
     }
-
 };

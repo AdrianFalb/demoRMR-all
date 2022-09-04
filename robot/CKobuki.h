@@ -31,20 +31,17 @@
 //#include <chrono>
 #include <sstream>
 
-
-
 using namespace std;
 
-typedef struct
-{
+typedef struct {
 	
 	unsigned short x;
 	unsigned short y;
 	unsigned short z;
 
-}TRawGyroData;
-typedef struct
-{
+} TRawGyroData;
+
+typedef struct {
 	//Hardware Version
 	unsigned char HardwareVersionMajor;
 	unsigned char HardwareVersionMinor;
@@ -63,10 +60,9 @@ typedef struct
 	unsigned int PIDgainP;
 	unsigned int PIDgainI;
 	unsigned int PIDgainD;
-}TExtraRequestData;
+} TExtraRequestData;
 
-typedef struct
-{
+typedef struct {
 	//---zakladny balik
 	unsigned short timestamp;
 	//narazniky
@@ -116,26 +112,23 @@ typedef struct
 	unsigned short analogInputCh3;
 	//---struktura s datami ktore sa nam tam objavia iba na poziadanie
 	TExtraRequestData extraInfo;
-}TKobukiData;
-
+} TKobukiData;
 
 typedef long(*src_callback_kobuki_data) (void *user_data, TKobukiData &Kobuki_data);
 
-class CKobuki
-{
+class CKobuki {
+
 public:
+
 	CKobuki() { 
 
 		std::cout << "kobuki instantiated" << std::endl;
 
 	};
-	 virtual ~CKobuki() { 
 
-	};
-	
+    virtual ~CKobuki() {
 
-
-
+    };
 
     std::vector<unsigned char> setLed(int led1 = 0, int led2 = 0); //led1 zelena/cervena 2/1, //led2 zelena/cervena 2/1
     std::vector<unsigned char> setTranslationSpeed(int mmpersec);
@@ -145,25 +138,20 @@ public:
 
     std::vector<unsigned char> setDefaultPID();
 
-    int fillData(TKobukiData &output,unsigned char *message)
-    {
+    int fillData(TKobukiData &output,unsigned char *message) {
         return parseKobukiMessage(output,message);
     }
-
 
 private:
 
     int parseKobukiMessage(TKobukiData &output, unsigned char *data );
-
     int checkChecksum(unsigned char *data);
 	
 	//--spustenie merania v novom vlakne (vycitavanie bezi v novom vlakne. treba ho stopnut ak chceme poslat request)
 
-
 	long double tickToMeter = 0.000085292090497737556558; // [m/tick]
 	long double b = 0.23; // wheelbase distance in meters, from kobuki manual https://yujinrobot.github.io/kobuki/doxygen/enAppendixProtocolSpecification.html
 //
-
 
 };
 
