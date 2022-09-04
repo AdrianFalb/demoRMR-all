@@ -41,7 +41,7 @@ public:
     //    cv::Mat frame[3];
 
     cv::Mat frame[3];
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = 0); // Konstruktor?
     ~MainWindow();
 
     int processThisLidar(LaserMeasurement laserData);

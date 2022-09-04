@@ -203,17 +203,17 @@ void Robot::laserprocess() {
 
 void Robot::robotStart() {
 
-    if(wasRobotSet == 1) {
+    if (wasRobotSet == 1) {
         std::function<void(void)> f = std::bind(&Robot::robotprocess, this);
         robotthreadHandle = std::move(std::thread(f));
     }
 
-    if(wasLaserSet == 1) {
+    if (wasLaserSet == 1) {
         std::function<void(void)> f2 = std::bind(&Robot::laserprocess, this);
         laserthreadHandle = std::move(std::thread(f2));
     }
 
-    if(wasCameraSet == 1) {
+    if (wasCameraSet == 1) {
         std::function<void(void)> f3 = std::bind(&Robot::imageViewer, this);
         camerathreadhandle = std::move(std::thread(f3));
     }

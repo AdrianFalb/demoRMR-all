@@ -4,6 +4,7 @@
 #include <math.h>
 
 MainWindow::MainWindow(QWidget *parent) :
+
     QMainWindow(parent),
     ui(new Ui::MainWindow) {
 
@@ -127,7 +128,7 @@ int MainWindow::processThisCamera(cv::Mat cameraData) {
     return 0;
 }
 
-void MainWindow::on_pushButton_9_clicked() { //start button
+void MainWindow::on_pushButton_9_clicked() { // start button
 
     forwardspeed = 0;
     rotationspeed = 0;
@@ -137,7 +138,7 @@ void MainWindow::on_pushButton_9_clicked() { //start button
     laserthreadID=pthread_create(&laserthreadHandle,NULL,&laserUDPVlakno,(void *)this);
     robotthreadID=pthread_create(&robotthreadHandle,NULL,&robotUDPVlakno,(void *)this);
     */
-    connect(this, SIGNAL(uiValuesChanged(double,double,double)), this, SLOT(setUiValues(double,double,double)));
+    connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double)));
 
     robot.setLaserParameters("127.0.0.1", 52999, 5299, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
     robot.setRobotParameters("127.0.0.1", 53000, 5300, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
@@ -147,7 +148,7 @@ void MainWindow::on_pushButton_9_clicked() { //start button
     instance = QJoysticks::getInstance();
 
     /* Enable the virtual joystick */
-  /*  instance->setVirtualJoystickRange(1);
+    /*  instance->setVirtualJoystickRange(1);
     instance->setVirtualJoystickEnabled(true);
     instance->setVirtualJoystickAxisSensibility(0.7);*/
     //instance->
