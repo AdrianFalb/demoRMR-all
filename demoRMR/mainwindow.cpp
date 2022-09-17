@@ -9,16 +9,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow) {
 
     // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
-    ipaddress = "127.0.0.1";
+    this->ipaddress = "127.0.0.1";
     // cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
-    datacounter = 0;
+    this->datacounter = 0;
     // timer = new QTimer(this);
     // connect(timer, SIGNAL(timeout()), this, SLOT(getNewFrame()));
-    actIndex = -1;
-    useCamera1 = false;
+    this->actIndex = -1;
+    this->useCamera1 = false;
 
-    datacounter = 0;
+    this->datacounter = 0;
 }
 
 MainWindow::~MainWindow() {
@@ -34,7 +34,7 @@ void MainWindow::paintEvent(QPaintEvent *event) {
     pero.setWidth(3);
     pero.setColor(Qt::green);
     QRect rect(20, 120, 700, 500);
-    rect= ui->frame->geometry();
+    rect = ui->frame->geometry();
     rect.translate(0, 15);
     painter.drawRect(rect);
 
@@ -46,9 +46,9 @@ void MainWindow::paintEvent(QPaintEvent *event) {
 
     } else {
 
-        if (updateLaserPicture == 1) {
+        if (this->updateLaserPicture == 1) {
 
-            updateLaserPicture = 0;
+            this->updateLaserPicture = 0;
             painter.setPen(pero);
 
             // teraz tu kreslime random udaje... vykreslite to co treba... t.j. data z lidaru
@@ -83,29 +83,29 @@ void MainWindow::setUiValues(double robotX,double robotY,double robotFi) {
 
 int MainWindow::processThisRobot(TKobukiData robotdata) {
 
-    if (forwardspeed == 0 && rotationspeed != 0) {
+    if (this->forwardspeed == 0 && this->rotationspeed != 0) {
 
-        robot.setRotationSpeed(rotationspeed);
+        robotGroup.at(0)->setRotationSpeed(this->rotationspeed);
 
-    } else if (forwardspeed != 0 && rotationspeed == 0) {
+    } else if (this->forwardspeed != 0 && this->rotationspeed == 0) {
 
-        robot.setTranslationSpeed(forwardspeed);
+        robotGroup.at(0)->setTranslationSpeed(this->forwardspeed);
 
-    } else if ((forwardspeed != 0 && rotationspeed != 0)) {
+    } else if ((this->forwardspeed != 0 && this->rotationspeed != 0)) {
 
-        robot.setArcSpeed(forwardspeed, forwardspeed/rotationspeed);
+        robotGroup.at(0)->setArcSpeed(this->forwardspeed, this->forwardspeed/this->rotationspeed);
 
     } else {
 
-        robot.setTranslationSpeed(0);
+        robotGroup.at(0)->setTranslationSpeed(0);
     }
 
-    if (datacounter % 5) {
+    if (this->datacounter % 5) {
 
-        emit uiValuesChanged(robotdata.EncoderLeft,11,12);
+        emit uiValuesChanged(this->robotdata.EncoderLeft,11,12);
     }
 
-    datacounter++;
+    this->datacounter++;
     return 0;
 }
 
@@ -114,7 +114,7 @@ int MainWindow::processThisLidar(LaserMeasurement laserData) {
     memcpy( &copyOfLaserData,&laserData,sizeof(LaserMeasurement));
     // tu mozete robit s datami z lidaru.. napriklad najst prekazky, zapisat do mapy. naplanovat ako sa prekazke vyhnut.
     // ale nic vypoctovo narocne - to iste vlakno ktore cita data z lidaru
-    updateLaserPicture=1;
+    this->updateLaserPicture=1;
     update();//tento prikaz prinuti prekreslit obrazovku.. zavola sa paintEvent funkcia
 
     return 0;
@@ -124,14 +124,23 @@ int MainWindow::processThisCamera(cv::Mat cameraData) {
 
     cameraData.copyTo(frame[(actIndex + 1) % 3]);
     actIndex = (actIndex + 1) % 3;
-    updateLaserPicture = 1;
+    this->updateLaserPicture = 1;
     return 0;
+}
+
+void MainWindow::addNewRobot(unsigned short int robotIndex, unsigned short int numberOfRobots) {
+
+    MainWindow::robotGroup.resize(numberOfRobots, new Robot());
+    MainWindow::robotGroup.at(robotIndex)->setLaserParameters("127.0.0.1", 52999, 5299, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setRobotParameters("127.0.0.1", 53000, 5300, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setCameraParameters("http://127.0.0.1:8889/stream.mjpg", std::bind(&MainWindow::processThisCamera, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->robotStart();
 }
 
 void MainWindow::on_pushButton_9_clicked() { // start button
 
-    forwardspeed = 0;
-    rotationspeed = 0;
+    this->forwardspeed = 0;
+    this->rotationspeed = 0;
 
     // tu sa nastartuju vlakna ktore citaju data z lidaru a robota
     /*
@@ -140,10 +149,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     */
     connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double)));
 
-    robot.setLaserParameters("127.0.0.1", 52999, 5299, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
-    robot.setRobotParameters("127.0.0.1", 53000, 5300, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
-    robot.setCameraParameters("http://127.0.0.1:8889/stream.mjpg", std::bind(&MainWindow::processThisCamera, this, std::placeholders::_1));
-    robot.robotStart();
+    MainWindow::addNewRobot(0, 1);
 
     instance = QJoysticks::getInstance();
 
@@ -162,7 +168,8 @@ void MainWindow::on_pushButton_9_clicked() { // start button
 void MainWindow::on_pushButton_2_clicked() //forward
 {
     //pohyb dopredu
-    robot.setTranslationSpeed(500);
+    robotGroup.at(0)->setTranslationSpeed(500);
+
     /*std::vector<unsigned char> mess=robot.setTranslationSpeed(500);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
     {
@@ -172,7 +179,7 @@ void MainWindow::on_pushButton_2_clicked() //forward
 
 void MainWindow::on_pushButton_3_clicked() { // back
 
-    robot.setTranslationSpeed(-250);
+    robotGroup.at(0)->setTranslationSpeed(-250);
 
     /*  std::vector<unsigned char> mess=robot.setTranslationSpeed(-250);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -183,7 +190,7 @@ void MainWindow::on_pushButton_3_clicked() { // back
 
 void MainWindow::on_pushButton_6_clicked() { // left
 
-    robot.setRotationSpeed(3.14159/2);
+    robotGroup.at(0)->setRotationSpeed(3.14159/2);
 
     /*  std::vector<unsigned char> mess=robot.setRotationSpeed(3.14159/2);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -194,7 +201,7 @@ void MainWindow::on_pushButton_6_clicked() { // left
 
 void MainWindow::on_pushButton_5_clicked() { // right
 
-    robot.setRotationSpeed(-3.14159/2);
+    robotGroup.at(0)->setRotationSpeed(-3.14159/2);
 
     /* std::vector<unsigned char> mess=robot.setRotationSpeed(-3.14159/2);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -205,7 +212,7 @@ void MainWindow::on_pushButton_5_clicked() { // right
 
 void MainWindow::on_pushButton_4_clicked() { // stop
 
-    robot.setTranslationSpeed(0);
+    robotGroup.at(0)->setTranslationSpeed(0);
 
     /*  std::vector<unsigned char> mess=robot.setTranslationSpeed(0);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -216,15 +223,15 @@ void MainWindow::on_pushButton_4_clicked() { // stop
 
 void MainWindow::on_pushButton_clicked() {
 
-    if (useCamera1 == true) {
+    if (this->useCamera1 == true) {
 
-        useCamera1 = false;
-        ui->pushButton->setText("use camera");
+        this->useCamera1 = false;
+        ui->pushButton->setText("Use camera");
 
     } else {
 
-        useCamera1 = true;
-        ui->pushButton->setText("use laser");
+        this->useCamera1 = true;
+        ui->pushButton->setText("Use laser");
     }
 }
 

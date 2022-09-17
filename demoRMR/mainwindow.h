@@ -62,19 +62,21 @@ private:
 
     JOYINFO joystickInfo;
     Ui::MainWindow *ui;
-    void paintEvent(QPaintEvent *event);// Q_DECL_OVERRIDE;
+    void paintEvent(QPaintEvent *event); // Q_DECL_OVERRIDE;
     int updateLaserPicture;
     LaserMeasurement copyOfLaserData;
     std::string ipaddress;
-    Robot robot;
+    std::vector<Robot*> robotGroup;
     TKobukiData robotdata;
     int datacounter;
     QTimer *timer;
 
     QJoysticks *instance;
 
-    double forwardspeed;//mm/s
-    double rotationspeed;//omega/s
+    double forwardspeed; // mm/s
+    double rotationspeed; // omega/s
+
+    void addNewRobot(unsigned short int robotIndex, unsigned short int numberOfRobots);
 
 public slots:
     void setUiValues(double robotX,double robotY,double robotFi);

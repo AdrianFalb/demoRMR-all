@@ -17,9 +17,9 @@ std::function<int(LaserMeasurement)> Robot::do_nothing_laser = [](LaserMeasureme
 Robot::~Robot() {
 
     ready_promise.set_value();
-    robotthreadHandle.join();
-    laserthreadHandle.join();
-    camerathreadhandle.join();
+    robotThreadHandle.join();
+    laserThreadHandle.join();
+    cameraThreadHandle.join();
 
     #ifdef _WIN32
         WSACleanup();
@@ -28,9 +28,11 @@ Robot::~Robot() {
 
 Robot::Robot(std::string ipaddressLaser, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement)> &lascallback, std::string ipaddressRobot,int robotportRobot, int robotportMe, std::function<int(TKobukiData)> &robcallback): wasLaserSet(0), wasRobotSet(0), wasCameraSet(0) {
 
-    setLaserParameters(ipaddressLaser, laserportRobot, laserportMe, lascallback);
-    setRobotParameters(ipaddressRobot, robotportRobot, robotportMe, robcallback);
+    this->setLaserParameters(ipaddressLaser, laserportRobot, laserportMe, lascallback);
+    this->setRobotParameters(ipaddressRobot, robotportRobot, robotportMe, robcallback);
     readyFuture = ready_promise.get_future();
+
+    std::cout << "Bol som vytvoreny!" << std::endl;
 }
 
 void Robot::robotprocess() {
@@ -78,7 +80,7 @@ void Robot::robotprocess() {
         usleep(100*1000);
     #endif
 
-    mess = robot.setSound(440,1000);
+    mess = robot.setSound(440, 1000);
     if (::sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1) {
 
     }
@@ -86,7 +88,7 @@ void Robot::robotprocess() {
     unsigned char buff[50000];
     while(1) {
 
-        if(readyFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        if (readyFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             break;
         memset(buff,0,50000*sizeof(char));
 
@@ -184,7 +186,7 @@ void Robot::laserprocess() {
     LaserMeasurement measure;
     while(1) {
 
-        if(readyFuture.wait_for(std::chrono::seconds(0))==std::future_status::ready)
+        if (readyFuture.wait_for(std::chrono::seconds(0))==std::future_status::ready)
             break;
         if ((las_recv_len = ::recvfrom(las_s, (char *)&measure.Data, sizeof(LaserData)*1000, 0, (struct sockaddr *) &las_si_other, &las_slen)) == -1) {
 
@@ -205,17 +207,17 @@ void Robot::robotStart() {
 
     if (wasRobotSet == 1) {
         std::function<void(void)> f = std::bind(&Robot::robotprocess, this);
-        robotthreadHandle = std::move(std::thread(f));
+        this->robotThreadHandle = std::move(std::thread(f));
     }
 
     if (wasLaserSet == 1) {
         std::function<void(void)> f2 = std::bind(&Robot::laserprocess, this);
-        laserthreadHandle = std::move(std::thread(f2));
+        this->laserThreadHandle = std::move(std::thread(f2));
     }
 
     if (wasCameraSet == 1) {
         std::function<void(void)> f3 = std::bind(&Robot::imageViewer, this);
-        camerathreadhandle = std::move(std::thread(f3));
+       this-> cameraThreadHandle = std::move(std::thread(f3));
     }
 }
 

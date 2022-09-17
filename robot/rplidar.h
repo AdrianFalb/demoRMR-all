@@ -54,6 +54,7 @@ public:
 
     int i;
     rplidar() {
+
         WasEnabled = 0;
         ktoreMeranie = -1;
         kdeJeCele = -1;

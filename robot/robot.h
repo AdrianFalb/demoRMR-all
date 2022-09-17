@@ -35,27 +35,27 @@ public:
     ~Robot();
     Robot(std::string ipaddressLaser="127.0.0.1",int laserportRobot=52999, int laserportMe=5299,std::function<int(LaserMeasurement)> &lascallback=do_nothing_laser,std::string ipaddressRobot="127.0.0.1",int robotportRobot=53000, int robotportMe=5300,std::function<int(TKobukiData)> &robcallback=do_nothing_robot);
 
-    //default functions.. please do not rewrite.. make your own callback
+    // default functions.. please do not rewrite.. make your own callback
     static std::function<int(TKobukiData)> do_nothing_robot;
     static std::function<int(LaserMeasurement)> do_nothing_laser;
 
     void robotStart();
     void setLaserParameters(std::string ipaddress, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement)> callback) {
 
-        laser_ip_portOut = laserportRobot;
-        laser_ip_portIn = laserportMe;
-        laser_ipaddress = ipaddress;
-        laser_callback = callback;
-        wasLaserSet = 1;
+        this->laser_ip_portOut = laserportRobot;
+        this->laser_ip_portIn = laserportMe;
+        this->laser_ipaddress = ipaddress;
+        this->laser_callback = callback;
+        this->wasLaserSet = 1;
     }
 
     void setRobotParameters(std::string ipaddress, int robotportRobot, int robotportMe, std::function<int(TKobukiData)> callback) {
 
-        robot_ip_portOut = robotportRobot;
-        robot_ip_portIn = robotportMe;
-        robot_ipaddress = ipaddress;
-        robot_callback = callback;
-        wasRobotSet = 1;
+        this->robot_ip_portOut = robotportRobot;
+        this->robot_ip_portIn = robotportMe;
+        this->robot_ipaddress = ipaddress;
+        this->robot_callback = callback;
+        this->wasRobotSet = 1;
     }
 
     void setTranslationSpeed(int mmpersec);
@@ -63,9 +63,9 @@ public:
     void setArcSpeed(int mmpersec,int radius);
     void setCameraParameters(std::string link,std::function<int(cv::Mat)> callback) {
 
-        camera_link=link;
-        camera_callback=callback;
-        wasCameraSet=1;
+        this->camera_link=link;
+        this->camera_callback=callback;
+        this->wasCameraSet=1;
     }
 
 private:
@@ -81,7 +81,7 @@ private:
     std::string laser_ipaddress;
     int laser_ip_portOut;
     int laser_ip_portIn;
-    std::thread laserthreadHandle;
+    std::thread laserThreadHandle;
     std::function<int(LaserMeasurement)> laser_callback = nullptr;
 
     //veci pre podvozok
@@ -90,14 +90,14 @@ private:
     std::string robot_ipaddress;
     int robot_ip_portOut;
     int robot_ip_portIn;
-    std::thread robotthreadHandle;
+    std::thread robotThreadHandle;
     void robotprocess();
     std::function<int(TKobukiData)> robot_callback = nullptr;
 
     //veci pre kameru -- pozor na kameru, neotvarat ak nahodou chcete kameru pripojit na detekciu kostry...
 
     std::string camera_link;
-    std::thread camerathreadhandle;
+    std::thread cameraThreadHandle;
     std::function<int(cv::Mat)> camera_callback = nullptr;
     void Robot::imageViewer();
 
