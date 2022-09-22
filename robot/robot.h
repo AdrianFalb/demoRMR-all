@@ -68,6 +68,16 @@ public:
         this->wasCameraSet=1;
     }
 
+    void setMyRobotGroupIndex(unsigned short int index) {
+
+        this->myRobotGroupIndex = index;
+    }
+
+    unsigned short int getMyRobotGroupIndex() {
+
+        return this->myRobotGroupIndex;
+    }
+
 private:
 
     std::promise<void> ready_promise;
@@ -83,6 +93,8 @@ private:
     int laser_ip_portIn;
     std::thread laserThreadHandle;
     std::function<int(LaserMeasurement)> laser_callback = nullptr;
+
+    unsigned short int myRobotGroupIndex;
 
     //veci pre podvozok
     CKobuki robot;

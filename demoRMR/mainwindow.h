@@ -66,7 +66,10 @@ private:
     int updateLaserPicture;
     LaserMeasurement copyOfLaserData;
     std::string ipaddress;
+    std::string cameraAddress;
     std::vector<Robot*> robotGroup;
+    unsigned short int indexOfCurrentRobot;
+    unsigned short int firstRobotIndex;
     TKobukiData robotdata;
     int datacounter;
     QTimer *timer;
@@ -76,7 +79,8 @@ private:
     double forwardspeed; // mm/s
     double rotationspeed; // omega/s
 
-    void addNewRobot(unsigned short int robotIndex, unsigned short int numberOfRobots);
+    void addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots);
+    void setIndexOfCurrentRobot(unsigned short int robotIndex);
 
 public slots:
     void setUiValues(double robotX,double robotY,double robotFi);

@@ -9,7 +9,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow) {
 
     // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
-    this->ipaddress = "127.0.0.1";
+
+    // this->ipaddress = "127.0.0.1"; // Local host
+    this->ipaddress = "192.168.1.11"; // Ip adresa robota
+    this->cameraAddress = "http://192.168.1.11:8000/stream.mjpg"; // Camera stream address
+    this->firstRobotIndex = 0;
+
     // cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
     this->datacounter = 0;
@@ -80,9 +85,11 @@ void MainWindow::setUiValues(double robotX,double robotY,double robotFi) {
      ui->lineEdit_4->setText(QString::number(robotFi));
 }
 
-
 int MainWindow::processThisRobot(TKobukiData robotdata) {
 
+    // Joystick
+
+    /*
     if (this->forwardspeed == 0 && this->rotationspeed != 0) {
 
         robotGroup.at(0)->setRotationSpeed(this->rotationspeed);
@@ -99,10 +106,11 @@ int MainWindow::processThisRobot(TKobukiData robotdata) {
 
         robotGroup.at(0)->setTranslationSpeed(0);
     }
+    */
 
     if (this->datacounter % 5) {
 
-        emit uiValuesChanged(this->robotdata.EncoderLeft,11,12);
+        emit uiValuesChanged(this->robotdata.EncoderLeft, 11, 12);
     }
 
     this->datacounter++;
@@ -128,12 +136,22 @@ int MainWindow::processThisCamera(cv::Mat cameraData) {
     return 0;
 }
 
-void MainWindow::addNewRobot(unsigned short int robotIndex, unsigned short int numberOfRobots) {
+void MainWindow::setIndexOfCurrentRobot(unsigned short int robotIndex) {
+
+    this->indexOfCurrentRobot = robotIndex;
+
+}
+
+void MainWindow::addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots) {
 
     MainWindow::robotGroup.resize(numberOfRobots, new Robot());
-    MainWindow::robotGroup.at(robotIndex)->setLaserParameters("127.0.0.1", 52999, 5299, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setRobotParameters("127.0.0.1", 53000, 5300, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setCameraParameters("http://127.0.0.1:8889/stream.mjpg", std::bind(&MainWindow::processThisCamera, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setLaserParameters(this->ipaddress, 52999, 5299, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ipaddress, 53000, 5300, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setCameraParameters(this->cameraAddress, std::bind(&MainWindow::processThisCamera, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setMyRobotGroupIndex(robotIndex);
+
+    MainWindow::setIndexOfCurrentRobot(robotIndex);
+
     MainWindow::robotGroup.at(robotIndex)->robotStart();
 }
 
@@ -149,7 +167,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     */
     connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double)));
 
-    MainWindow::addNewRobot(0, 1);
+    MainWindow::addNewRobotToGroup(this->firstRobotIndex, 1);
 
     instance = QJoysticks::getInstance();
 
@@ -168,7 +186,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
 void MainWindow::on_pushButton_2_clicked() //forward
 {
     //pohyb dopredu
-    robotGroup.at(0)->setTranslationSpeed(500);
+    robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(500);
 
     /*std::vector<unsigned char> mess=robot.setTranslationSpeed(500);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -179,7 +197,7 @@ void MainWindow::on_pushButton_2_clicked() //forward
 
 void MainWindow::on_pushButton_3_clicked() { // back
 
-    robotGroup.at(0)->setTranslationSpeed(-250);
+    robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(-250);
 
     /*  std::vector<unsigned char> mess=robot.setTranslationSpeed(-250);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -190,7 +208,7 @@ void MainWindow::on_pushButton_3_clicked() { // back
 
 void MainWindow::on_pushButton_6_clicked() { // left
 
-    robotGroup.at(0)->setRotationSpeed(3.14159/2);
+    robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed(3.14159/2);
 
     /*  std::vector<unsigned char> mess=robot.setRotationSpeed(3.14159/2);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -201,7 +219,7 @@ void MainWindow::on_pushButton_6_clicked() { // left
 
 void MainWindow::on_pushButton_5_clicked() { // right
 
-    robotGroup.at(0)->setRotationSpeed(-3.14159/2);
+    robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed(-3.14159/2);
 
     /* std::vector<unsigned char> mess=robot.setRotationSpeed(-3.14159/2);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -212,7 +230,7 @@ void MainWindow::on_pushButton_5_clicked() { // right
 
 void MainWindow::on_pushButton_4_clicked() { // stop
 
-    robotGroup.at(0)->setTranslationSpeed(0);
+    robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(0);
 
     /*  std::vector<unsigned char> mess=robot.setTranslationSpeed(0);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
