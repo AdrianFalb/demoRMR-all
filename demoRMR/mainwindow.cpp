@@ -85,6 +85,11 @@ void MainWindow::setUiValues(double robotX,double robotY,double robotFi) {
      ui->lineEdit_4->setText(QString::number(robotFi));
 }
 
+void MainWindow::setIpAddress(std::string ipAddress) {
+
+    this->ipaddress = ipAddress;
+}
+
 int MainWindow::processThisRobot(TKobukiData robotdata) {
 
     // Joystick
@@ -166,6 +171,12 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     robotthreadID=pthread_create(&robotthreadHandle,NULL,&robotUDPVlakno,(void *)this);
     */
     connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double)));
+
+    // Check if user entered an ip address
+    if (!ui->lineEdit->text().isEmpty()) {
+
+        this->setIpAddress(ui->lineEdit->text().toStdString());
+    }
 
     MainWindow::addNewRobotToGroup(this->firstRobotIndex, 1);
 

@@ -81,6 +81,7 @@ private:
 
     void addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots);
     void setIndexOfCurrentRobot(unsigned short int robotIndex);
+    void setIpAddress(std::string ipAddress);
 
 public slots:
     void setUiValues(double robotX,double robotY,double robotFi);
