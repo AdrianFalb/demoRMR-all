@@ -10,10 +10,20 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
 
-    // this->ipaddress = "127.0.0.1"; // Local host
-    this->ipaddress = "192.168.1.11"; // Ip adresa robota
-    this->cameraAddress = "http://192.168.1.11:8000/stream.mjpg"; // Camera stream address
-    this->firstRobotIndex = 0;
+    this->httpString = "http://";
+    this->fileString = "/stream.mjpg";
+    this->portString = ":8000";
+
+    this->ipAddress = "127.0.0.1"; // Local host - default
+    this->cameraAddress = "http://127.0.0.1:8889/stream.mjpg"; // Local host - Default
+
+    this->indexOfCurrentRobot = 0;
+
+    this->laserParametersLaserPortOut = 52999;
+    this->laserParametersLaserPortIn = 5299;
+
+    this->robotParametersLaserPortOut = 53000;
+    this->robotParametersLaserPortIn = 5300;
 
     // cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
@@ -87,7 +97,8 @@ void MainWindow::setUiValues(double robotX,double robotY,double robotFi) {
 
 void MainWindow::setIpAddress(std::string ipAddress) {
 
-    this->ipaddress = ipAddress;
+    this->ipAddress = ipAddress;
+    this->cameraAddress = this->httpString + this->ipAddress + this->portString + this->fileString;
 }
 
 int MainWindow::processThisRobot(TKobukiData robotdata) {
@@ -150,8 +161,8 @@ void MainWindow::setIndexOfCurrentRobot(unsigned short int robotIndex) {
 void MainWindow::addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots) {
 
     MainWindow::robotGroup.resize(numberOfRobots, new Robot());
-    MainWindow::robotGroup.at(robotIndex)->setLaserParameters(this->ipaddress, 52999, 5299, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ipaddress, 53000, 5300, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setLaserParameters(this->ipAddress, this->laserParametersLaserPortOut, this->laserParametersLaserPortIn, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ipAddress, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
     MainWindow::robotGroup.at(robotIndex)->setCameraParameters(this->cameraAddress, std::bind(&MainWindow::processThisCamera, this, std::placeholders::_1));
     MainWindow::robotGroup.at(robotIndex)->setMyRobotGroupIndex(robotIndex);
 
@@ -178,7 +189,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
         this->setIpAddress(ui->lineEdit->text().toStdString());
     }
 
-    MainWindow::addNewRobotToGroup(this->firstRobotIndex, 1);
+    MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, 1);
 
     instance = QJoysticks::getInstance();
 

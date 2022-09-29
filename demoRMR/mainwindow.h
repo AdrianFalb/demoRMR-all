@@ -65,11 +65,20 @@ private:
     void paintEvent(QPaintEvent *event); // Q_DECL_OVERRIDE;
     int updateLaserPicture;
     LaserMeasurement copyOfLaserData;
-    std::string ipaddress;
+
+    std::string httpString;
+    std::string portString;
+    std::string fileString;
+    std::string ipAddress;
     std::string cameraAddress;
+
+    unsigned int laserParametersLaserPortOut;
+    unsigned int laserParametersLaserPortIn;
+    unsigned int robotParametersLaserPortOut;
+    unsigned int robotParametersLaserPortIn;
+
     std::vector<Robot*> robotGroup;
     unsigned short int indexOfCurrentRobot;
-    unsigned short int firstRobotIndex;
     TKobukiData robotdata;
     int datacounter;
     QTimer *timer;
