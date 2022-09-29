@@ -171,6 +171,18 @@ void MainWindow::addNewRobotToGroup(unsigned short int robotIndex, unsigned shor
     MainWindow::robotGroup.at(robotIndex)->robotStart();
 }
 
+void MainWindow::on_pushButton_switch_robot_clicked() {
+
+    // Bude to take tlacidlo, ktore pojde iba jednym smerom
+    if (this->indexOfCurrentRobot < this->robotGroup.size() - 1) {
+        this->indexOfCurrentRobot += 1;
+    } else {
+        this->indexOfCurrentRobot = 0;
+    }
+
+    std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
+}
+
 void MainWindow::on_pushButton_9_clicked() { // start button
 
     this->forwardspeed = 0;
