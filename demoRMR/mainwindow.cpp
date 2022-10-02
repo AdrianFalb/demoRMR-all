@@ -12,10 +12,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->httpString = "http://";
     this->fileString = "/stream.mjpg";
-    this->portString = ":8000";
+    //this->portString = ":8000";
+    this->portString = ":8889"; // simulator
 
     this->ipAddress = "127.0.0.1"; // Local host - default
-    this->cameraAddress = "http://127.0.0.1:8889/stream.mjpg"; // Local host - Default
+    this->cameraAddress = this->httpString + this->ipAddress + this->portString + this->fileString; // Local host - Default
 
     this->indexOfCurrentRobot = 0;
 
@@ -183,6 +184,28 @@ void MainWindow::on_pushButton_switch_robot_clicked() {
     std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
 }
 
+void MainWindow::on_pushButton_add_robot_clicked() {
+
+    while (this->indexOfCurrentRobot < this->robotGroup.size() - 1) {
+
+        this->indexOfCurrentRobot += 1; // tuto iba zabezpecujem, aby bol ten index na max pred pridanim dalsieho robota
+    }
+
+    this->indexOfCurrentRobot += 1;
+
+    if (!ui->lineEdit->text().isEmpty()) {
+
+        this->setIpAddress(ui->lineEdit->text().toStdString());
+    }
+
+    this->laserParametersLaserPortIn += 10;
+    this->laserParametersLaserPortOut += 10;
+    this->robotParametersLaserPortIn += 10;
+    this->robotParametersLaserPortOut += 10;
+
+    MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, this->robotGroup.size() + 1);
+}
+
 void MainWindow::on_pushButton_9_clicked() { // start button
 
     this->forwardspeed = 0;
@@ -215,6 +238,8 @@ void MainWindow::on_pushButton_9_clicked() { // start button
         [this]( const int js, const int axis, const qreal value) { if(/*js==0 &&*/ axis==1){forwardspeed=-value*300;}
             if(/*js==0 &&*/ axis==0){rotationspeed=-value*(3.14159/2.0);}}
     );
+
+
 }
 
 void MainWindow::on_pushButton_2_clicked() //forward

@@ -58,6 +58,7 @@ private slots:
     void on_pushButton_clicked();
 
     void on_pushButton_switch_robot_clicked();
+    void on_pushButton_add_robot_clicked();
     void getNewFrame();
 
 private:
