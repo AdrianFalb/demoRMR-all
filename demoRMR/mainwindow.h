@@ -98,8 +98,12 @@ private:
 public slots:
     void setUiValues(double robotX,double robotY,double robotFi);
 
+    void setButtonStates();
+
 signals:
     void uiValuesChanged(double newrobotX,double newrobotY,double newrobotFi); ///toto nema telo
+
+    void startButtonPressed(bool pressed);
 
 };
 

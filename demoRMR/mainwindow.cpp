@@ -6,7 +6,7 @@
 MainWindow::MainWindow(QWidget *parent) :
 
     QMainWindow(parent),
-    ui(new Ui::MainWindow) {
+    ui(new Ui::MainWindow) {   
 
     // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
 
@@ -35,6 +35,9 @@ MainWindow::MainWindow(QWidget *parent) :
     this->useCamera1 = false;
 
     this->datacounter = 0;
+
+    ui->pushButton_add_robot->setEnabled(false);
+    ui->pushButton_switch_robot->setEnabled(false);
 }
 
 MainWindow::~MainWindow() {
@@ -94,6 +97,15 @@ void MainWindow::setUiValues(double robotX,double robotY,double robotFi) {
      ui->lineEdit_2->setText(QString::number(robotX));
      ui->lineEdit_3->setText(QString::number(robotY));
      ui->lineEdit_4->setText(QString::number(robotFi));
+}
+
+void MainWindow::setButtonStates() {
+
+    ui->pushButton_9->setEnabled(false);
+    ui->pushButton_add_robot->setEnabled(true);
+    ui->pushButton_switch_robot->setEnabled(true);
+
+    std::cout << "Button turned off";
 }
 
 void MainWindow::setIpAddress(std::string ipAddress) {
@@ -170,6 +182,7 @@ void MainWindow::addNewRobotToGroup(unsigned short int robotIndex, unsigned shor
     MainWindow::setIndexOfCurrentRobot(robotIndex);
 
     MainWindow::robotGroup.at(robotIndex)->robotStart();
+
 }
 
 void MainWindow::on_pushButton_switch_robot_clicked() {
@@ -181,7 +194,7 @@ void MainWindow::on_pushButton_switch_robot_clicked() {
         this->indexOfCurrentRobot = 0;
     }
 
-    std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
+    //std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
 }
 
 void MainWindow::on_pushButton_add_robot_clicked() {
@@ -216,7 +229,8 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     laserthreadID=pthread_create(&laserthreadHandle,NULL,&laserUDPVlakno,(void *)this);
     robotthreadID=pthread_create(&robotthreadHandle,NULL,&robotUDPVlakno,(void *)this);
     */
-    connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double)));
+    connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double))); // pripaja signal k slotu
+    connect(this, SIGNAL(startButtonPressed(bool)), this, SLOT(setButtonStates()));
 
     // Check if user entered an ip address
     if (!ui->lineEdit->text().isEmpty()) {
@@ -239,6 +253,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
             if(/*js==0 &&*/ axis==0){rotationspeed=-value*(3.14159/2.0);}}
     );
 
+    emit startButtonPressed(true); // vyslanie signalu
 
 }
 
