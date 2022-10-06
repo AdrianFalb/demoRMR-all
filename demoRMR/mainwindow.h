@@ -3,16 +3,16 @@
 
 #include <QMainWindow>
 #include <QTimer>
-#include<windows.h>
-#include<iostream>
-//#include<arpa/inet.h>
-//#include<unistd.h>
-//#include<sys/socket.h>
-#include<sys/types.h>
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<vector>
+#include <windows.h>
+#include <iostream>
+//#include <arpa/inet.h>
+//#include <unistd.h>
+//#include <sys/socket.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <vector>
 //#include "ckobuki.h"
 //#include "rplidar.h"
 #include <opencv2/core/core.hpp>
@@ -80,7 +80,7 @@ private:
     unsigned int robotParametersLaserPortOut;
     unsigned int robotParametersLaserPortIn;
 
-    std::vector<Robot*> robotGroup;
+    std::map<unsigned short int, Robot*> robotGroup;
     unsigned short int indexOfCurrentRobot;
     TKobukiData robotdata;
     int datacounter;

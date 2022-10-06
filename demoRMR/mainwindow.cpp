@@ -12,8 +12,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->httpString = "http://";
     this->fileString = "/stream.mjpg";
-    //this->portString = ":8000";
-    this->portString = ":8889"; // simulator
+    this->portString = ":8000";
+    //this->portString = ":8889"; // simulator
 
     this->ipAddress = "127.0.0.1"; // Local host - default
     this->cameraAddress = this->httpString + this->ipAddress + this->portString + this->fileString; // Local host - Default
@@ -105,7 +105,7 @@ void MainWindow::setButtonStates() {
     ui->pushButton_add_robot->setEnabled(true);
     ui->pushButton_switch_robot->setEnabled(true);
 
-    std::cout << "Button turned off";
+    //std::cout << "Button turned off";
 }
 
 void MainWindow::setIpAddress(std::string ipAddress) {
@@ -173,7 +173,8 @@ void MainWindow::setIndexOfCurrentRobot(unsigned short int robotIndex) {
 
 void MainWindow::addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots) {
 
-    MainWindow::robotGroup.resize(numberOfRobots, new Robot());
+    //MainWindow::robotGroup.resize(numberOfRobots, new Robot());
+    MainWindow::robotGroup.insert(std::map<unsigned short int, Robot*>::value_type(robotIndex, new Robot()));
     MainWindow::robotGroup.at(robotIndex)->setLaserParameters(this->ipAddress, this->laserParametersLaserPortOut, this->laserParametersLaserPortIn, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
     MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ipAddress, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
     MainWindow::robotGroup.at(robotIndex)->setCameraParameters(this->cameraAddress, std::bind(&MainWindow::processThisCamera, this, std::placeholders::_1));
@@ -181,8 +182,7 @@ void MainWindow::addNewRobotToGroup(unsigned short int robotIndex, unsigned shor
 
     MainWindow::setIndexOfCurrentRobot(robotIndex);
 
-    MainWindow::robotGroup.at(robotIndex)->robotStart();
-
+    MainWindow::robotGroup.at(this->indexOfCurrentRobot)->robotStart();
 }
 
 void MainWindow::on_pushButton_switch_robot_clicked() {
@@ -211,10 +211,11 @@ void MainWindow::on_pushButton_add_robot_clicked() {
         this->setIpAddress(ui->lineEdit->text().toStdString());
     }
 
-    this->laserParametersLaserPortIn += 10;
-    this->laserParametersLaserPortOut += 10;
-    this->robotParametersLaserPortIn += 10;
-    this->robotParametersLaserPortOut += 10;
+    // Porty sa menia iba v simulatore, kazdy robot ma rovnake porty
+    //this->laserParametersLaserPortIn += 10;
+    //this->laserParametersLaserPortOut += 10;
+    //this->robotParametersLaserPortIn += 10;
+    //this->robotParametersLaserPortOut += 10;
 
     MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, this->robotGroup.size() + 1);
 }
@@ -238,7 +239,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
         this->setIpAddress(ui->lineEdit->text().toStdString());
     }
 
-    MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, 1);
+    MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, 1);    
 
     instance = QJoysticks::getInstance();
 
@@ -254,7 +255,6 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     );
 
     emit startButtonPressed(true); // vyslanie signalu
-
 }
 
 void MainWindow::on_pushButton_2_clicked() //forward
