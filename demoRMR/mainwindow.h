@@ -47,6 +47,7 @@ public:
     int processThisLidar(LaserMeasurement laserData);
     int processThisRobot(TKobukiData robotdata);
     int processThisCamera(cv::Mat cameraData);
+    void receiveCommand();
 
 private slots:
     void on_pushButton_9_clicked();

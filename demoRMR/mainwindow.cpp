@@ -12,8 +12,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->httpString = "http://";
     this->fileString = "/stream.mjpg";
-    this->portString = ":8000";
-    //this->portString = ":8889"; // simulator
+    //this->portString = ":8000";
+    this->portString = ":8889"; // simulator
 
     this->ipAddress = "127.0.0.1"; // Local host - default
     this->cameraAddress = this->httpString + this->ipAddress + this->portString + this->fileString; // Local host - Default
@@ -26,7 +26,6 @@ MainWindow::MainWindow(QWidget *parent) :
     this->robotParametersLaserPortOut = 53000;
     this->robotParametersLaserPortIn = 5300;
 
-    // cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
     this->datacounter = 0;
     // timer = new QTimer(this);
@@ -37,11 +36,11 @@ MainWindow::MainWindow(QWidget *parent) :
     this->datacounter = 0;
 
     ui->pushButton_add_robot->setEnabled(false);
-    ui->pushButton_switch_robot->setEnabled(false);
+    ui->pushButton_switch_robot->setEnabled(false);    
 }
 
 MainWindow::~MainWindow() {
-    delete ui;
+    delete ui;    
 }
 
 void MainWindow::paintEvent(QPaintEvent *event) {
@@ -112,6 +111,8 @@ void MainWindow::setIpAddress(std::string ipAddress) {
 
     this->ipAddress = ipAddress;
     this->cameraAddress = this->httpString + this->ipAddress + this->portString + this->fileString;
+
+    ui->lineEdit->clear(); // vycisti textove pole
 }
 
 int MainWindow::processThisRobot(TKobukiData robotdata) {
@@ -212,10 +213,12 @@ void MainWindow::on_pushButton_add_robot_clicked() {
     }
 
     // Porty sa menia iba v simulatore, kazdy robot ma rovnake porty
-    //this->laserParametersLaserPortIn += 10;
-    //this->laserParametersLaserPortOut += 10;
-    //this->robotParametersLaserPortIn += 10;
-    //this->robotParametersLaserPortOut += 10;
+
+    this->laserParametersLaserPortIn += 10;
+    this->laserParametersLaserPortOut += 10;
+    this->robotParametersLaserPortIn += 10;
+    this->robotParametersLaserPortOut += 10;
+
 
     MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, this->robotGroup.size() + 1);
 }
