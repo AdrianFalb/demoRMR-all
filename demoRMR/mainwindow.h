@@ -139,9 +139,9 @@ private:
     double forward_speed; // mm/s
     double rotation_speed; // omega/s
 
-    void add_new_robot_to_group(unsigned short int robotIndex, unsigned short int numberOfRobots);
-    void set_index_of_current_robot(unsigned short int robotIndex);
-    void set_ip_address(std::string ipAddress);
+    void add_new_robot_to_group(unsigned short int robot_index, unsigned short int number_of_robots);
+    void set_index_of_current_robot(unsigned short int robot_index);
+    void set_ip_address(std::string ip_address);
 
 public slots:
     void setUiValues(double robotX,double robotY,double robotFi);

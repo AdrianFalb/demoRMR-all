@@ -16,7 +16,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->ip_address = "127.0.0.1"; // Local host - default
     this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string; // Local host - Default
-
     this->index_of_current_robot = 0;
 
     this->laserParametersLaserPortOut = 52999;
@@ -113,9 +112,9 @@ void MainWindow::setButtonStates() {
     ui->pushButton_switch_robot->setEnabled(true);    
 }
 
-void MainWindow::set_ip_address(std::string ipAddress) {
+void MainWindow::set_ip_address(std::string ip_address) {
 
-    this->ip_address = ipAddress;
+    this->ip_address = ip_address;
     this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string;
     ui->lineEdit->clear();
 }
@@ -412,7 +411,7 @@ void MainWindow::on_pushButton_switch_robot_clicked() {
         this->index_of_current_robot = 0;
     }
 
-    //std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
+    // std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
 }
 
 void MainWindow::on_pushButton_add_robot_clicked() {
