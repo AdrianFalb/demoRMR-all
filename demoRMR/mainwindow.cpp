@@ -17,7 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->ip_address = "127.0.0.1"; // Local host - default
     this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string; // Local host - Default
 
-    this->indexOfCurrentRobot = 0;
+    this->index_of_current_robot = 0;
 
     this->laserParametersLaserPortOut = 52999;
     this->laserParametersLaserPortIn = 5299;
@@ -26,11 +26,11 @@ MainWindow::MainWindow(QWidget *parent) :
     this->robotParametersLaserPortIn = 5300;
 
     ui->setupUi(this);
-    this->datacounter = 0;    
-    this->actIndex = -1;
-    this->useCamera1 = false;
+    this->data_counter = 0;
+    this->act_index = -1;
+    this->use_camera1 = false;
 
-    this->datacounter = 0;
+    this->data_counter = 0;
 
     ui->pushButton_add_robot->setEnabled(false);
     ui->pushButton_switch_robot->setEnabled(false);
@@ -64,32 +64,32 @@ void MainWindow::paintEvent(QPaintEvent *event) {
     rect.translate(0, 15);
     painter.drawRect(rect);
 
-    if (useCamera1 == true && actIndex > -1) {
+    if (use_camera1 == true && act_index > -1) {
 
-        std::cout<<actIndex<<std::endl;
-        QImage image = QImage((uchar*)frame[actIndex].data, frame[actIndex].cols, frame[actIndex].rows, frame[actIndex].step, QImage::Format_RGB888  );
+        std::cout<<act_index<<std::endl;
+        QImage image = QImage((uchar*)frame[act_index].data, frame[act_index].cols, frame[act_index].rows, frame[act_index].step, QImage::Format_RGB888  );
         painter.drawImage(rect, image.rgbSwapped());
 
     } else {
 
-        if (this->updateLaserPicture == 1) {
+        if (this->update_laser_picture == 1) {
 
-            this->updateLaserPicture = 0;
+            this->update_laser_picture = 0;
             painter.setPen(pero);
 
             // teraz tu kreslime random udaje... vykreslite to co treba... t.j. data z lidaru
             // std::cout<<copyOfLaserData.numberOfScans<<std::endl;
 
-            for (int k = 0; k < copyOfLaserData.numberOfScans/*360*/; k++) {
+            for (int k = 0; k < copy_of_laser_data.numberOfScans/*360*/; k++) {
 
                 /*  int dist=rand()%500;
                 int xp=rect.width()-(rect.width()/2+dist*2*sin((360.0-k)*3.14159/180.0))+rect.topLeft().x();
                 int yp=rect.height()-(rect.height()/2+dist*2*cos((360.0-k)*3.14159/180.0))+rect.topLeft().y();
                 */
 
-                int dist = copyOfLaserData.Data[k].scanDistance / 20;
-                int xp = rect.width() - (rect.width()/2 + dist*2*sin((360.0-copyOfLaserData.Data[k].scanAngle)*3.14159/180.0)) + rect.topLeft().x();
-                int yp = rect.height() - (rect.height()/2 + dist*2*cos((360.0-copyOfLaserData.Data[k].scanAngle)*3.14159/180.0)) + rect.topLeft().y();
+                int dist = copy_of_laser_data.Data[k].scanDistance / 20;
+                int xp = rect.width() - (rect.width()/2 + dist*2*sin((360.0-copy_of_laser_data.Data[k].scanAngle)*3.14159/180.0)) + rect.topLeft().x();
+                int yp = rect.height() - (rect.height()/2 + dist*2*cos((360.0-copy_of_laser_data.Data[k].scanAngle)*3.14159/180.0)) + rect.topLeft().y();
 
                 if (rect.contains(xp, yp)) {
                     painter.drawEllipse(QPoint(xp, yp),2,2);
@@ -143,21 +143,21 @@ int MainWindow::process_this_robot(TKobukiData robotdata) {
     }
     */
 
-    if (this->datacounter % 5) {
+    if (this->data_counter % 5) {
 
-        emit uiValuesChanged(this->robotdata.EncoderLeft, 11, 12);
+        emit uiValuesChanged(this->robot_data.EncoderLeft, 11, 12);
     }
 
-    this->datacounter++;
+    this->data_counter++;
     return 0;
 }
 
 int MainWindow::process_this_lidar(LaserMeasurement laserData) {
 
-    memcpy( &copyOfLaserData,&laserData,sizeof(LaserMeasurement));
+    memcpy( &copy_of_laser_data,&laserData,sizeof(LaserMeasurement));
     // tu mozete robit s datami z lidaru.. napriklad najst prekazky, zapisat do mapy. naplanovat ako sa prekazke vyhnut.
     // ale nic vypoctovo narocne - to iste vlakno ktore cita data z lidaru
-    this->updateLaserPicture=1;
+    this->update_laser_picture = 1;
     update(); //tento prikaz prinuti prekreslit obrazovku.. zavola sa paintEvent funkcia
 
     return 0;
@@ -165,9 +165,9 @@ int MainWindow::process_this_lidar(LaserMeasurement laserData) {
 
 int MainWindow::process_this_camera(cv::Mat cameraData) {
 
-    cameraData.copyTo(frame[(actIndex + 1) % 3]);
-    actIndex = (actIndex + 1) % 3;
-    this->updateLaserPicture = 1;
+    cameraData.copyTo(frame[(act_index + 1) % 3]);
+    act_index = (act_index + 1) % 3;
+    this->update_laser_picture = 1;
     return 0;
 }
 
@@ -183,7 +183,7 @@ void MainWindow::process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_
 
 #ifdef _WIN32
     WSADATA wsaData = {0};
-    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData); // Initialize Winsock
+    int i_result = WSAStartup(MAKEWORD(2, 2), &wsaData); // Initialize Winsock
 #else
 #endif
 
@@ -343,20 +343,20 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
 
     bool command_allowed = true;
 
-    for(unsigned short int i = 0; i < robotGroup.size(); i++) {
+    for(unsigned short int i = 0; i < robot_group.size(); i++) {
 
-       if (robot_ip_address == robotGroup[i]->getIpAddress()) {
-           this->indexOfCurrentRobot = robotGroup[i]->getMyRobotGroupIndex();
+       if (robot_ip_address == robot_group[i]->getIpAddress()) {
+           this->index_of_current_robot = robot_group[i]->getMyRobotGroupIndex();
            command_allowed = true;
 
            if (robot_command == "WAKE_UP") {
-               robotGroup.at(this->indexOfCurrentRobot)->set_accept_commands(true);
+               robot_group.at(this->index_of_current_robot)->set_accept_commands(true);
            }
            break;
 
        } else {
            command_allowed = false;
-           robotGroup.at(i)->set_accept_commands(false);
+           robot_group.at(i)->set_accept_commands(false);
        }
     }
 
@@ -365,51 +365,51 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
         return;
     }
 
-    if (robot_command == "STOP" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
-        robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(0);
+    if (robot_command == "STOP" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+        robot_group.at(this->index_of_current_robot)->setTranslationSpeed(0);
 
-    } else if (robot_command == "FORWARD" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
-        robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(250);
+    } else if (robot_command == "FORWARD" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+        robot_group.at(this->index_of_current_robot)->setTranslationSpeed(250);
 
-    } else if (robot_command == "BACKWARD" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
-        robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(-250);
+    } else if (robot_command == "BACKWARD" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+        robot_group.at(this->index_of_current_robot)->setTranslationSpeed(-250);
 
-    } else if (robot_command == "RIGHT" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
-        robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed((-3.14159/2));
+    } else if (robot_command == "RIGHT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+        robot_group.at(this->index_of_current_robot)->setRotationSpeed((-3.14159/2));
 
-    } else if (robot_command == "LEFT" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
-        robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed((3.14159/2));
+    } else if (robot_command == "LEFT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+        robot_group.at(this->index_of_current_robot)->setRotationSpeed((3.14159/2));
     }
 }
 
-void MainWindow::set_index_of_current_robot(unsigned short int robotIndex) {
+void MainWindow::set_index_of_current_robot(unsigned short int robot_index) {
 
-    this->indexOfCurrentRobot = robotIndex;
+    this->index_of_current_robot = robot_index;
 
 }
 
-void MainWindow::add_new_robot_to_group(unsigned short int robotIndex, unsigned short int numberOfRobots) {
+void MainWindow::add_new_robot_to_group(unsigned short int robot_index, unsigned short int number_of_robots) {
 
-    //MainWindow::robotGroup.resize(numberOfRobots, new Robot());
-    MainWindow::robotGroup.insert(std::map<unsigned short int, Robot*>::value_type(robotIndex, new Robot()));
-    MainWindow::robotGroup.at(robotIndex)->setLaserParameters(this->ip_address, this->laserParametersLaserPortOut, this->laserParametersLaserPortIn, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::process_this_lidar, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ip_address, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::process_this_robot, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setCameraParameters(this->camera_address, std::bind(&MainWindow::process_this_camera, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setMyRobotGroupIndex(robotIndex);
-    MainWindow::robotGroup.at(robotIndex)->set_accept_commands(false);
+    //MainWindow::robotGroup.resize(number_of_robots, new Robot());
+    MainWindow::robot_group.insert(std::map<unsigned short int, Robot*>::value_type(robot_index, new Robot()));
+    MainWindow::robot_group.at(robot_index)->setLaserParameters(this->ip_address, this->laserParametersLaserPortOut, this->laserParametersLaserPortIn, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::process_this_lidar, this, std::placeholders::_1));
+    MainWindow::robot_group.at(robot_index)->setRobotParameters(this->ip_address, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::process_this_robot, this, std::placeholders::_1));
+    MainWindow::robot_group.at(robot_index)->setCameraParameters(this->camera_address, std::bind(&MainWindow::process_this_camera, this, std::placeholders::_1));
+    MainWindow::robot_group.at(robot_index)->setMyRobotGroupIndex(robot_index);
+    MainWindow::robot_group.at(robot_index)->set_accept_commands(false);
 
-    MainWindow::set_index_of_current_robot(robotIndex);
+    MainWindow::set_index_of_current_robot(robot_index);
 
-    MainWindow::robotGroup.at(this->indexOfCurrentRobot)->robotStart();
+    MainWindow::robot_group.at(this->index_of_current_robot)->robotStart();
 }
 
 void MainWindow::on_pushButton_switch_robot_clicked() {
 
     // Bude to take tlacidlo, ktore pojde iba jednym smerom
-    if (this->indexOfCurrentRobot < this->robotGroup.size() - 1) {
-        this->indexOfCurrentRobot += 1;
+    if (this->index_of_current_robot < this->robot_group.size() - 1) {
+        this->index_of_current_robot += 1;
     } else {
-        this->indexOfCurrentRobot = 0;
+        this->index_of_current_robot = 0;
     }
 
     //std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
@@ -417,12 +417,12 @@ void MainWindow::on_pushButton_switch_robot_clicked() {
 
 void MainWindow::on_pushButton_add_robot_clicked() {
 
-    while (this->indexOfCurrentRobot < this->robotGroup.size() - 1) {
+    while (this->index_of_current_robot < this->robot_group.size() - 1) {
 
-        this->indexOfCurrentRobot += 1; // tuto iba zabezpecujem, aby bol ten index na max pred pridanim dalsieho robota
+        this->index_of_current_robot += 1; // tuto iba zabezpecujem, aby bol ten index na max pred pridanim dalsieho robota
     }
 
-    this->indexOfCurrentRobot += 1;
+    this->index_of_current_robot += 1;
 
     if (!ui->lineEdit->text().isEmpty()) {
 
@@ -438,7 +438,7 @@ void MainWindow::on_pushButton_add_robot_clicked() {
     */
 
 
-    MainWindow::add_new_robot_to_group(this->indexOfCurrentRobot, this->robotGroup.size() + 1);
+    MainWindow::add_new_robot_to_group(this->index_of_current_robot, this->robot_group.size() + 1);
 }
 
 void MainWindow::on_pushButton_9_clicked() { // start button
@@ -460,7 +460,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
         this->set_ip_address(ui->lineEdit->text().toStdString());
     }
 
-    MainWindow::add_new_robot_to_group(this->indexOfCurrentRobot, 1);
+    MainWindow::add_new_robot_to_group(this->index_of_current_robot, 1);
 
     instance = QJoysticks::getInstance();
 
@@ -481,7 +481,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
 void MainWindow::on_pushButton_2_clicked() //forward
 {
     //pohyb dopredu
-    robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(500);
+    robot_group.at(this->index_of_current_robot)->setTranslationSpeed(500);
 
     /*std::vector<unsigned char> mess=robot.setTranslationSpeed(500);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -492,7 +492,7 @@ void MainWindow::on_pushButton_2_clicked() //forward
 
 void MainWindow::on_pushButton_3_clicked() { // back
 
-    robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(-250);
+    robot_group.at(this->index_of_current_robot)->setTranslationSpeed(-250);
 
     /*  std::vector<unsigned char> mess=robot.setTranslationSpeed(-250);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -503,7 +503,7 @@ void MainWindow::on_pushButton_3_clicked() { // back
 
 void MainWindow::on_pushButton_6_clicked() { // left
 
-    robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed(3.14159/2);
+    robot_group.at(this->index_of_current_robot)->setRotationSpeed(3.14159/2);
 
     /*  std::vector<unsigned char> mess=robot.setRotationSpeed(3.14159/2);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -514,7 +514,7 @@ void MainWindow::on_pushButton_6_clicked() { // left
 
 void MainWindow::on_pushButton_5_clicked() { // right
 
-    robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed(-3.14159/2);
+    robot_group.at(this->index_of_current_robot)->setRotationSpeed(-3.14159/2);
 
     /* std::vector<unsigned char> mess=robot.setRotationSpeed(-3.14159/2);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -525,7 +525,7 @@ void MainWindow::on_pushButton_5_clicked() { // right
 
 void MainWindow::on_pushButton_4_clicked() { // stop
 
-    robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(0);
+    robot_group.at(this->index_of_current_robot)->setTranslationSpeed(0);
 
     /*  std::vector<unsigned char> mess=robot.setTranslationSpeed(0);
     if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
@@ -536,14 +536,14 @@ void MainWindow::on_pushButton_4_clicked() { // stop
 
 void MainWindow::on_pushButton_clicked() {
 
-    if (this->useCamera1 == true) {
+    if (this->use_camera1 == true) {
 
-        this->useCamera1 = false;
+        this->use_camera1 = false;
         ui->pushButton->setText("Use camera");
 
     } else {
 
-        this->useCamera1 = true;
+        this->use_camera1 = true;
         ui->pushButton->setText("Use laser");
     }
 }

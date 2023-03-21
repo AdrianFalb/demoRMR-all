@@ -44,8 +44,8 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    bool useCamera1;
-    int actIndex;    
+    bool use_camera1;
+    int act_index;
 
     cv::Mat frame[3];
     explicit MainWindow(QWidget *parent = 0);
@@ -54,7 +54,6 @@ public:
     int process_this_lidar(LaserMeasurement laserData);
     int process_this_robot(TKobukiData robotdata);
     int process_this_camera(cv::Mat cameraData);
-
     //void process_this_message();
     void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
     void issue_robot_command(std::string robot_id, std::string robot_command);
@@ -66,7 +65,7 @@ public:
 
     void start_message_thread();
     int stopall;
-    int updateSkeletonPicture;
+    //int update_skeleton_picture;
 
     struct sockaddr_in las_si_me, las_si_other,las_si_posli; // veci na broadcast laser
     int las_s,  las_recv_len;
@@ -112,11 +111,11 @@ private slots:
 
 private:
 
-    JOYINFO joystickInfo;
+    //JOYINFO joystick_info;
     Ui::MainWindow *ui;
     void paintEvent(QPaintEvent *event); // Q_DECL_OVERRIDE;
-    int updateLaserPicture;
-    LaserMeasurement copyOfLaserData;
+    int update_laser_picture;
+    LaserMeasurement copy_of_laser_data;
 
     std::string http_string;
     std::string port_string;
@@ -129,10 +128,10 @@ private:
     unsigned int robotParametersLaserPortOut;
     unsigned int robotParametersLaserPortIn;
 
-    std::map<unsigned short int, Robot*> robotGroup;
-    unsigned short int indexOfCurrentRobot;
-    TKobukiData robotdata;
-    int datacounter;
+    std::map<unsigned short int, Robot*> robot_group;
+    unsigned short int index_of_current_robot;
+    TKobukiData robot_data;
+    int data_counter;
     QTimer *timer;
 
     QJoysticks *instance;
