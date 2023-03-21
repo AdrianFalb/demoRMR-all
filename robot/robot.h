@@ -83,6 +83,14 @@ public:
         return this->robot_ipaddress;
     }
 
+    void set_accept_commands(bool b) {
+        this->accept_commands = b;
+    }
+
+    bool get_accept_commands() {
+        return this->accept_commands;
+    }
+
 private:
 
     std::promise<void> ready_promise;
@@ -90,6 +98,7 @@ private:
     int wasLaserSet;
     int wasRobotSet;
     int wasCameraSet;
+    bool accept_commands;
     //veci na laser
     LaserMeasurement copyOfLaserData;
     void laserprocess();

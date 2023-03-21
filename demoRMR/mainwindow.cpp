@@ -9,7 +9,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow) {   
 
     // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
-
     this->http_string = "http://";
     this->file_string = "/stream.mjpg";
     this->port_string = ":8000";
@@ -27,9 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->robotParametersLaserPortIn = 5300;
 
     ui->setupUi(this);
-    this->datacounter = 0;
-    // timer = new QTimer(this);
-    // connect(timer, SIGNAL(timeout()), this, SLOT(getNewFrame()));
+    this->datacounter = 0;    
     this->actIndex = -1;
     this->useCamera1 = false;
 
@@ -113,17 +110,14 @@ void MainWindow::setButtonStates() {
 
     ui->pushButton_9->setEnabled(false);
     ui->pushButton_add_robot->setEnabled(true);
-    ui->pushButton_switch_robot->setEnabled(true);
-
-    //std::cout << "Button turned off";
+    ui->pushButton_switch_robot->setEnabled(true);    
 }
 
 void MainWindow::set_ip_address(std::string ipAddress) {
 
     this->ip_address = ipAddress;
     this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string;
-
-    ui->lineEdit->clear(); // vycisti textove pole
+    ui->lineEdit->clear();
 }
 
 int MainWindow::process_this_robot(TKobukiData robotdata) {
@@ -349,13 +343,20 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
 
     bool command_allowed = true;
 
-    for(int i = 0; i < robotGroup.size(); i++) {
+    for(unsigned short int i = 0; i < robotGroup.size(); i++) {
+
        if (robot_ip_address == robotGroup[i]->getIpAddress()) {
            this->indexOfCurrentRobot = robotGroup[i]->getMyRobotGroupIndex();
            command_allowed = true;
+
+           if (robot_command == "WAKE_UP") {
+               robotGroup.at(this->indexOfCurrentRobot)->set_accept_commands(true);
+           }
            break;
+
        } else {
            command_allowed = false;
+           robotGroup.at(i)->set_accept_commands(false);
        }
     }
 
@@ -364,15 +365,19 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
         return;
     }
 
-    if (robot_command == "STOP") {
+    if (robot_command == "STOP" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
         robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(0);
-    } else if (robot_command == "FORWARD") {
+
+    } else if (robot_command == "FORWARD" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
         robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(250);
-    } else if (robot_command == "BACKWARD") {
+
+    } else if (robot_command == "BACKWARD" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
         robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(-250);
-    } else if (robot_command == "RIGHT") {
+
+    } else if (robot_command == "RIGHT" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
         robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed((-3.14159/2));
-    } else if (robot_command == "LEFT") {
+
+    } else if (robot_command == "LEFT" && robotGroup.at(this->indexOfCurrentRobot)->get_accept_commands() == true) {
         robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed((3.14159/2));
     }
 }
@@ -391,6 +396,7 @@ void MainWindow::add_new_robot_to_group(unsigned short int robotIndex, unsigned 
     MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ip_address, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::process_this_robot, this, std::placeholders::_1));
     MainWindow::robotGroup.at(robotIndex)->setCameraParameters(this->camera_address, std::bind(&MainWindow::process_this_camera, this, std::placeholders::_1));
     MainWindow::robotGroup.at(robotIndex)->setMyRobotGroupIndex(robotIndex);
+    MainWindow::robotGroup.at(robotIndex)->set_accept_commands(false);
 
     MainWindow::set_index_of_current_robot(robotIndex);
 
