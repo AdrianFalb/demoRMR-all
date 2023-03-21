@@ -3,16 +3,26 @@
 
 #include <QMainWindow>
 #include <QTimer>
-#include <windows.h>
 #include <iostream>
-//#include <arpa/inet.h>
-//#include <unistd.h>
-//#include <sys/socket.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#endif
+
+#include <thread>
+#include <functional>
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <vector>
+
+
 //#include "ckobuki.h"
 //#include "rplidar.h"
 #include <opencv2/core/core.hpp>
@@ -35,19 +45,57 @@ class MainWindow : public QMainWindow {
 
 public:
     bool useCamera1;
-    //  cv::VideoCapture cap;
-
-    int actIndex;
-    //    cv::Mat frame[3];
+    int actIndex;    
 
     cv::Mat frame[3];
-    explicit MainWindow(QWidget *parent = 0); // Konstruktor?
+    explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    int processThisLidar(LaserMeasurement laserData);
-    int processThisRobot(TKobukiData robotdata);
-    int processThisCamera(cv::Mat cameraData);
-    void receiveCommand();
+    int process_this_lidar(LaserMeasurement laserData);
+    int process_this_robot(TKobukiData robotdata);
+    int process_this_camera(cv::Mat cameraData);
+
+    //void process_this_message();
+    void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
+    void issue_robot_command(std::string robot_id, std::string robot_command);
+
+    std::thread robot_message_thread;
+    std::thread th1;
+    std::thread th2;
+    std::thread th3;
+
+    void start_message_thread();
+    int stopall;
+    int updateSkeletonPicture;
+
+    struct sockaddr_in las_si_me, las_si_other,las_si_posli; // veci na broadcast laser
+    int las_s,  las_recv_len;
+
+    struct sockaddr_in ske_si_me1, ske_si_other1,ske_si_posli1;
+    int ske_s1, ske_recv_len1;
+
+    struct sockaddr_in ske_si_me2, ske_si_other2, ske_si_posli2;
+    int ske_s2, ske_recv_len2;
+
+    struct sockaddr_in ske_si_me3, ske_si_other3, ske_si_posli3;
+    int ske_s3, ske_recv_len3;
+
+    struct sockaddr_in rob_si_me, rob_si_other,rob_si_posli; // veci na broadcast robot
+    int rob_s,  rob_recv_len;
+
+    std::string received_message;
+    std::string robot_ip_address;
+    std::string robot_command;
+
+#ifdef _WIN32
+    int rob_slen;
+    int las_slen;
+    int ske_slen;
+#else
+    unsigned int rob_slen;
+    unsigned int las_slen;
+    unsigned int ske_slen;
+#endif
 
 private slots:
     void on_pushButton_9_clicked();
@@ -60,7 +108,7 @@ private slots:
 
     void on_pushButton_switch_robot_clicked();
     void on_pushButton_add_robot_clicked();
-    void getNewFrame();
+    void get_new_frame();
 
 private:
 
@@ -70,11 +118,11 @@ private:
     int updateLaserPicture;
     LaserMeasurement copyOfLaserData;
 
-    std::string httpString;
-    std::string portString;
-    std::string fileString;
-    std::string ipAddress;
-    std::string cameraAddress;
+    std::string http_string;
+    std::string port_string;
+    std::string file_string;
+    std::string ip_address;
+    std::string camera_address;
 
     unsigned int laserParametersLaserPortOut;
     unsigned int laserParametersLaserPortIn;
@@ -89,21 +137,19 @@ private:
 
     QJoysticks *instance;
 
-    double forwardspeed; // mm/s
-    double rotationspeed; // omega/s
+    double forward_speed; // mm/s
+    double rotation_speed; // omega/s
 
-    void addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots);
-    void setIndexOfCurrentRobot(unsigned short int robotIndex);
-    void setIpAddress(std::string ipAddress);
+    void add_new_robot_to_group(unsigned short int robotIndex, unsigned short int numberOfRobots);
+    void set_index_of_current_robot(unsigned short int robotIndex);
+    void set_ip_address(std::string ipAddress);
 
 public slots:
     void setUiValues(double robotX,double robotY,double robotFi);
-
     void setButtonStates();
 
 signals:
     void uiValuesChanged(double newrobotX,double newrobotY,double newrobotFi); ///toto nema telo
-
     void startButtonPressed(bool pressed);
 
 };

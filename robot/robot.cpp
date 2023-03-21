@@ -86,6 +86,7 @@ void Robot::robotprocess() {
     }
 
     unsigned char buff[50000];
+
     while(1) {
 
         if (readyFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
@@ -138,6 +139,15 @@ void Robot::setArcSpeed(int mmpersec,int radius) {
     std::vector<unsigned char> mess = robot.setArcSpeed(mmpersec,radius);
     if (::sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1) {
 
+    }
+}
+
+void Robot::ramp(int max_speed) {
+    int temp_speed = 0;
+
+    while (temp_speed < max_speed) {
+        setArcSpeed(temp_speed, 1);
+        temp_speed += 5;
     }
 }
 
@@ -228,14 +238,23 @@ void Robot::imageViewer() {
     cv::Mat frameBuf;
 
     while(1) {
+        //std::cout<<"doslo 1"<<std::endl;
         if(readyFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             break;
         cap >> frameBuf;
 
+        //std::cout<<"doslo "<<frameBuf.cols<<" "<<frameBuf.rows<<std::endl;
         // frameBuf.copyTo(robotPicture);
         std::async(std::launch::async, [this](cv::Mat camdata) { camera_callback(camdata.clone()); }, frameBuf);
-        cv::waitKey(1);
+#ifdef _WIN32
+        cv::waitKey(20);
+#else
+        usleep(20*1000);
+#endif
+        //cv::waitKey(1);
 
+        //std::cout<<"doslo 3"<<std::endl;
     }
+    std::cout<<"skoncilo vlakno"<<std::endl;
     cap.release();
 }

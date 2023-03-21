@@ -10,13 +10,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
 
-    this->httpString = "http://";
-    this->fileString = "/stream.mjpg";
-    //this->portString = ":8000";
-    this->portString = ":8889"; // simulator
+    this->http_string = "http://";
+    this->file_string = "/stream.mjpg";
+    this->port_string = ":8000";
+    //this->port_string = ":8889"; // simulator
 
-    this->ipAddress = "127.0.0.1"; // Local host - default
-    this->cameraAddress = this->httpString + this->ipAddress + this->portString + this->fileString; // Local host - Default
+    this->ip_address = "127.0.0.1"; // Local host - default
+    this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string; // Local host - Default
 
     this->indexOfCurrentRobot = 0;
 
@@ -36,7 +36,18 @@ MainWindow::MainWindow(QWidget *parent) :
     this->datacounter = 0;
 
     ui->pushButton_add_robot->setEnabled(false);
-    ui->pushButton_switch_robot->setEnabled(false);    
+    ui->pushButton_switch_robot->setEnabled(false);
+
+    //this->start_message_thread();
+
+    auto message = std::bind(&MainWindow::process_this_message, this, std::placeholders::_1,
+                             std::placeholders::_2, std::placeholders::_3,
+                             std::placeholders::_4, std::placeholders::_5,
+                             std::placeholders::_6);
+
+    th1 = std::move(std::thread(message, ske_si_me1, ske_si_other1, ske_si_posli1, ske_s1, ske_recv_len1, 23431));
+    th2 = std::move(std::thread(message, ske_si_me2, ske_si_other2, ske_si_posli2, ske_s2, ske_recv_len2, 23432));
+    th3 = std::move(std::thread(message, ske_si_me3, ske_si_other3, ske_si_posli3, ske_s3, ske_recv_len3, 23433));
 }
 
 MainWindow::~MainWindow() {
@@ -107,15 +118,15 @@ void MainWindow::setButtonStates() {
     //std::cout << "Button turned off";
 }
 
-void MainWindow::setIpAddress(std::string ipAddress) {
+void MainWindow::set_ip_address(std::string ipAddress) {
 
-    this->ipAddress = ipAddress;
-    this->cameraAddress = this->httpString + this->ipAddress + this->portString + this->fileString;
+    this->ip_address = ipAddress;
+    this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string;
 
     ui->lineEdit->clear(); // vycisti textove pole
 }
 
-int MainWindow::processThisRobot(TKobukiData robotdata) {
+int MainWindow::process_this_robot(TKobukiData robotdata) {
 
     // Joystick
 
@@ -147,18 +158,18 @@ int MainWindow::processThisRobot(TKobukiData robotdata) {
     return 0;
 }
 
-int MainWindow::processThisLidar(LaserMeasurement laserData) {
+int MainWindow::process_this_lidar(LaserMeasurement laserData) {
 
     memcpy( &copyOfLaserData,&laserData,sizeof(LaserMeasurement));
     // tu mozete robit s datami z lidaru.. napriklad najst prekazky, zapisat do mapy. naplanovat ako sa prekazke vyhnut.
     // ale nic vypoctovo narocne - to iste vlakno ktore cita data z lidaru
     this->updateLaserPicture=1;
-    update();//tento prikaz prinuti prekreslit obrazovku.. zavola sa paintEvent funkcia
+    update(); //tento prikaz prinuti prekreslit obrazovku.. zavola sa paintEvent funkcia
 
     return 0;
 }
 
-int MainWindow::processThisCamera(cv::Mat cameraData) {
+int MainWindow::process_this_camera(cv::Mat cameraData) {
 
     cameraData.copyTo(frame[(actIndex + 1) % 3]);
     actIndex = (actIndex + 1) % 3;
@@ -166,22 +177,222 @@ int MainWindow::processThisCamera(cv::Mat cameraData) {
     return 0;
 }
 
-void MainWindow::setIndexOfCurrentRobot(unsigned short int robotIndex) {
+/*
+void MainWindow::start_message_thread() {
+
+    std::function<void(void)> f = std::bind(&MainWindow::process_this_message, this);
+    this->robot_message_thread = std::move(std::thread(f));
+
+}*/
+
+void MainWindow::process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port) {
+
+#ifdef _WIN32
+    WSADATA wsaData = {0};
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData); // Initialize Winsock
+#else
+#endif
+
+    ske_slen = sizeof(ske_si_other);
+    if ((ske_s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+
+    }
+
+    char ske_broadcastene = 1;
+
+#ifdef _WIN32
+    DWORD timeout = 100;
+    std::cout << setsockopt(ske_s, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof timeout) << std::endl;
+    std::cout << setsockopt(ske_s, SOL_SOCKET, SO_BROADCAST, &ske_broadcastene, sizeof(ske_broadcastene)) << std::endl;
+#else
+    setsockopt(ske_s, SOL_SOCKET, SO_BROADCAST, &ske_broadcastene, sizeof(ske_broadcastene));
+#endif
+
+    // zero out the structure
+    memset((char *) &ske_si_me, 0, sizeof(ske_si_me));
+
+    ske_si_me.sin_family = AF_INET;
+    ske_si_me.sin_port = htons(port); //binds to port 23433
+    ske_si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    ske_si_posli.sin_family = AF_INET;
+    ske_si_posli.sin_port = htons(port);
+    ske_si_posli.sin_addr.s_addr = inet_addr(ip_address.data()); //htonl(INADDR_BROADCAST);
+    std::cout << ::bind(ske_s, (struct sockaddr*)&ske_si_me, sizeof(ske_si_me) ) << std::endl;
+
+    char buf[500];
+    while(true) {
+
+        if ((ske_recv_len = ::recvfrom(ske_s, (char *)&buf, sizeof(buf), 0, (struct sockaddr *) &ske_si_other, &ske_slen)) == -1) {
+            std::cout<<"problem s prijatim"<<std::endl;
+            continue;
+        }
+
+        bool record_command = false;
+
+        for (int i = 0; i < ske_recv_len; i++) {
+               received_message = received_message + buf[i];
+
+               if (isdigit(received_message[i]) || received_message[i] == '.') {
+                   robot_ip_address = robot_ip_address + received_message[i];
+               } else if (received_message[i - 1] == ':' && !isdigit(received_message[i])) {
+                   record_command = true;
+               }
+
+               if (record_command) {
+                   robot_command = robot_command + received_message[i];
+               }
+        }
+
+        // updateSkeletonPicture=1;
+        // std::cout<<"doslo " << buf << std::endl;
+        // continue;
+
+        std::cout << robot_ip_address << endl;
+        std::cout << robot_command << endl;
+        // std::cout << received_message << endl;
+
+        this->issue_robot_command(robot_ip_address, robot_command);
+
+        received_message.clear();
+        robot_ip_address.clear();
+        robot_command.clear();
+    }
+
+    std::cout << "koniec thread" << std::endl;
+}
+
+/*
+void MainWindow::process_this_message() {
+
+#ifdef _WIN32
+    WSADATA wsaData = {0};
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData); // Initialize Winsock
+#else
+#endif
+    ske_slen = sizeof(ske_si_other);
+    if ((ske_s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+
+    }
+
+    char ske_broadcastene = 1;
+#ifdef _WIN32
+    DWORD timeout = 100;
+
+    std::cout << setsockopt(ske_s, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof timeout) << std::endl;
+    std::cout << setsockopt(ske_s, SOL_SOCKET, SO_BROADCAST, &ske_broadcastene, sizeof(ske_broadcastene)) << std::endl;
+#else
+    setsockopt(ske_s,SOL_SOCKET,SO_BROADCAST,&ske_broadcastene,sizeof(ske_broadcastene));
+#endif
+    // zero out the structure
+    memset((char *) &ske_si_me, 0, sizeof(ske_si_me));
+
+    ske_si_me.sin_family = AF_INET;
+    ske_si_me.sin_port = htons(23433); // binds to port 23433
+    ske_si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    ske_si_posli.sin_family = AF_INET;
+    ske_si_posli.sin_port = htons(23433);
+    ske_si_posli.sin_addr.s_addr = inet_addr(ip_address.data()); //htonl(INADDR_BROADCAST);
+    std::cout << ::bind(ske_s, (struct sockaddr*)&ske_si_me, sizeof(ske_si_me) ) << std::endl;
+
+    char buf[500];
+    while(true) {
+
+        if ((ske_recv_len = ::recvfrom(ske_s, (char *)&buf, sizeof(buf), 0, (struct sockaddr *) &ske_si_other, &ske_slen)) == -1) {
+
+            // std::cout<<"problem s prijatim"<<std::endl;
+            continue;
+        }
+
+        bool record_command = false;
+
+        for (int i = 0; i < ske_recv_len; i++) {
+               received_message = received_message + buf[i];
+
+               if (isdigit(received_message[i]) || received_message[i] == '.') {
+                   robot_ip_address = robot_ip_address + received_message[i];
+               } else if (received_message[i - 1] == ':' && !isdigit(received_message[i])) {
+                   record_command = true;
+               }
+
+               if (record_command) {
+                   robot_command = robot_command + received_message[i];
+               }
+        }
+
+
+        // memcpy(message, buf, 500);
+        // updateSkeletonPicture=1;
+        // std::cout<<"doslo " << buf << std::endl;
+        // continue;
+
+        std::cout << robot_ip_address << endl;
+        std::cout << robot_command << endl;
+        // std::cout << received_message << endl;
+
+
+        this->issue_robot_command(robot_ip_address, robot_command);
+
+
+        received_message.clear();
+        robot_ip_address.clear();
+        robot_command.clear();
+
+    }
+
+    std::cout << "koniec thread" << std::endl;
+}
+*/
+
+void MainWindow::issue_robot_command(std::string robot_ip_address, std::string robot_command) {
+
+    bool command_allowed = true;
+
+    for(int i = 0; i < robotGroup.size(); i++) {
+       if (robot_ip_address == robotGroup[i]->getIpAddress()) {
+           this->indexOfCurrentRobot = robotGroup[i]->getMyRobotGroupIndex();
+           command_allowed = true;
+           break;
+       } else {
+           command_allowed = false;
+       }
+    }
+
+    if (command_allowed == false) {
+        std::cout << "No such robot id was found!" << endl;
+        return;
+    }
+
+    if (robot_command == "STOP") {
+        robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(0);
+    } else if (robot_command == "FORWARD") {
+        robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(250);
+    } else if (robot_command == "BACKWARD") {
+        robotGroup.at(this->indexOfCurrentRobot)->setTranslationSpeed(-250);
+    } else if (robot_command == "RIGHT") {
+        robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed((-3.14159/2));
+    } else if (robot_command == "LEFT") {
+        robotGroup.at(this->indexOfCurrentRobot)->setRotationSpeed((3.14159/2));
+    }
+}
+
+void MainWindow::set_index_of_current_robot(unsigned short int robotIndex) {
 
     this->indexOfCurrentRobot = robotIndex;
 
 }
 
-void MainWindow::addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots) {
+void MainWindow::add_new_robot_to_group(unsigned short int robotIndex, unsigned short int numberOfRobots) {
 
     //MainWindow::robotGroup.resize(numberOfRobots, new Robot());
     MainWindow::robotGroup.insert(std::map<unsigned short int, Robot*>::value_type(robotIndex, new Robot()));
-    MainWindow::robotGroup.at(robotIndex)->setLaserParameters(this->ipAddress, this->laserParametersLaserPortOut, this->laserParametersLaserPortIn, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::processThisLidar, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ipAddress, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::processThisRobot, this, std::placeholders::_1));
-    MainWindow::robotGroup.at(robotIndex)->setCameraParameters(this->cameraAddress, std::bind(&MainWindow::processThisCamera, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setLaserParameters(this->ip_address, this->laserParametersLaserPortOut, this->laserParametersLaserPortIn, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::process_this_lidar, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setRobotParameters(this->ip_address, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::process_this_robot, this, std::placeholders::_1));
+    MainWindow::robotGroup.at(robotIndex)->setCameraParameters(this->camera_address, std::bind(&MainWindow::process_this_camera, this, std::placeholders::_1));
     MainWindow::robotGroup.at(robotIndex)->setMyRobotGroupIndex(robotIndex);
 
-    MainWindow::setIndexOfCurrentRobot(robotIndex);
+    MainWindow::set_index_of_current_robot(robotIndex);
 
     MainWindow::robotGroup.at(this->indexOfCurrentRobot)->robotStart();
 }
@@ -209,24 +420,25 @@ void MainWindow::on_pushButton_add_robot_clicked() {
 
     if (!ui->lineEdit->text().isEmpty()) {
 
-        this->setIpAddress(ui->lineEdit->text().toStdString());
+        this->set_ip_address(ui->lineEdit->text().toStdString());
     }
 
     // Porty sa menia iba v simulatore, kazdy robot ma rovnake porty
-
+    /*
     this->laserParametersLaserPortIn += 10;
     this->laserParametersLaserPortOut += 10;
     this->robotParametersLaserPortIn += 10;
     this->robotParametersLaserPortOut += 10;
+    */
 
 
-    MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, this->robotGroup.size() + 1);
+    MainWindow::add_new_robot_to_group(this->indexOfCurrentRobot, this->robotGroup.size() + 1);
 }
 
 void MainWindow::on_pushButton_9_clicked() { // start button
 
-    this->forwardspeed = 0;
-    this->rotationspeed = 0;
+    this->forward_speed = 0;
+    this->rotation_speed = 0;
 
     // tu sa nastartuju vlakna ktore citaju data z lidaru a robota
     /*
@@ -239,10 +451,10 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     // Check if user entered an ip address
     if (!ui->lineEdit->text().isEmpty()) {
 
-        this->setIpAddress(ui->lineEdit->text().toStdString());
+        this->set_ip_address(ui->lineEdit->text().toStdString());
     }
 
-    MainWindow::addNewRobotToGroup(this->indexOfCurrentRobot, 1);    
+    MainWindow::add_new_robot_to_group(this->indexOfCurrentRobot, 1);
 
     instance = QJoysticks::getInstance();
 
@@ -253,8 +465,8 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     //instance->
     connect(
         instance, &QJoysticks::axisChanged,
-        [this]( const int js, const int axis, const qreal value) { if(/*js==0 &&*/ axis==1){forwardspeed=-value*300;}
-            if(/*js==0 &&*/ axis==0){rotationspeed=-value*(3.14159/2.0);}}
+        [this]( const int js, const int axis, const qreal value) { if(/*js==0 &&*/ axis==1){forward_speed=-value*300;}
+            if(/*js==0 &&*/ axis==0){rotation_speed=-value*(3.14159/2.0);}}
     );
 
     emit startButtonPressed(true); // vyslanie signalu
@@ -330,6 +542,6 @@ void MainWindow::on_pushButton_clicked() {
     }
 }
 
-void MainWindow::getNewFrame() {
+void MainWindow::get_new_frame() {
 
 }

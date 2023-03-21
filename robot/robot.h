@@ -61,6 +61,7 @@ public:
     void setTranslationSpeed(int mmpersec);
     void setRotationSpeed(double radpersec);
     void setArcSpeed(int mmpersec,int radius);
+    void ramp(int max_speed);
     void setCameraParameters(std::string link,std::function<int(cv::Mat)> callback) {
 
         this->camera_link=link;
@@ -76,6 +77,10 @@ public:
     unsigned short int getMyRobotGroupIndex() {
 
         return this->myRobotGroupIndex;
+    }
+
+    std::string getIpAddress() {
+        return this->robot_ipaddress;
     }
 
 private:
@@ -113,7 +118,6 @@ private:
     std::function<int(cv::Mat)> camera_callback = nullptr;
     void Robot::imageViewer();
 
-    ///
     ///
     struct sockaddr_in las_si_me, las_si_other,las_si_posli;
 
