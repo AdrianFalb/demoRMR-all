@@ -384,10 +384,16 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
         robot_group.at(this->index_of_current_robot)->setArcSpeed(-150, 0);
 
     } else if (robot_command == "RIGHT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
-        robot_group.at(this->index_of_current_robot)->setRotationSpeed((-1.5707/3));
+        robot_group.at(this->index_of_current_robot)->setRotationSpeed((-1.5707/4));
 
     } else if (robot_command == "LEFT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
-        robot_group.at(this->index_of_current_robot)->setRotationSpeed((1.5707/3));
+        robot_group.at(this->index_of_current_robot)->setRotationSpeed((1.5707/4));
+
+    } else if (robot_command == "OPERATOR_RIGHT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+        robot_group.at(this->index_of_current_robot)->setRotationSpeed((-1.5707/4));
+
+    } else if (robot_command == "OPERATOR_LEFT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+        robot_group.at(this->index_of_current_robot)->setRotationSpeed((1.5707/4));
     }
 }
 
