@@ -51,8 +51,8 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    int process_this_lidar(LaserMeasurement laserData);
-    int process_this_robot(TKobukiData robotdata);
+    int process_this_lidar(LaserMeasurement laserData, int address);
+    int process_this_robot(TKobukiData robotdata,int address);
     int process_this_camera(cv::Mat cameraData);
     //void process_this_message();
     void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
@@ -63,7 +63,9 @@ public:
     std::thread th2;
     std::thread th3;
 
-    void start_message_thread();
+    std::vector<int> used_robot_ips;
+
+
     int stopall;
     //int update_skeleton_picture;
 
@@ -82,9 +84,9 @@ public:
     struct sockaddr_in rob_si_me, rob_si_other,rob_si_posli; // veci na broadcast robot
     int rob_s,  rob_recv_len;
 
-    std::string received_message;
-    std::string robot_ip_address;
-    std::string robot_command;
+    //std::string received_message;
+    //std::string robot_ip_address;
+    //std::string robot_command;
 
 #ifdef _WIN32
     int rob_slen;
@@ -115,7 +117,9 @@ private:
     Ui::MainWindow *ui;
     void paintEvent(QPaintEvent *event); // Q_DECL_OVERRIDE;
     int update_laser_picture;
-    LaserMeasurement copy_of_laser_data;
+    LaserMeasurement copy_of_laser_data1;
+    LaserMeasurement copy_of_laser_data2;
+    LaserMeasurement copy_of_laser_data3;
 
     std::string http_string;
     std::string port_string;

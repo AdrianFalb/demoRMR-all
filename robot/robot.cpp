@@ -11,8 +11,8 @@
     #include <sys/socket.h>
 #endif
 
-std::function<int(TKobukiData)> Robot::do_nothing_robot = [](TKobukiData data){std::cout<<"data z kobuki "<<std::endl; return 0;};
-std::function<int(LaserMeasurement)> Robot::do_nothing_laser = [](LaserMeasurement data){std::cout<<"data z rplidar "<<std::endl; return 0;};
+std::function<int(TKobukiData,int)> Robot::do_nothing_robot = [](TKobukiData data,int){std::cout<<"data z kobuki "<<std::endl; return 0;};
+std::function<int(LaserMeasurement,int)> Robot::do_nothing_laser = [](LaserMeasurement data,int addres){std::cout<<"data z rplidar "<<std::endl; return 0;};
 
 Robot::~Robot() {
 
@@ -26,10 +26,11 @@ Robot::~Robot() {
     #endif
 }
 
-Robot::Robot(std::string ipaddressLaser, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement)> &lascallback, std::string ipaddressRobot,int robotportRobot, int robotportMe, std::function<int(TKobukiData)> &robcallback): wasLaserSet(0), wasRobotSet(0), wasCameraSet(0) {
+Robot::Robot(std::string ipaddressLaser, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement,int)> &lascallback, std::string ipaddressRobot,int robotportRobot, int robotportMe, std::function<int(TKobukiData,int)> &robcallback): wasLaserSet(0), wasRobotSet(0), wasCameraSet(0) {
 
     this->setLaserParameters(ipaddressLaser, laserportRobot, laserportMe, lascallback);
     this->setRobotParameters(ipaddressRobot, robotportRobot, robotportMe, robcallback);
+    this->set_actual_speed(0);
     readyFuture = ready_promise.get_future();
 
     std::cout << "Bol som vytvoreny!" << std::endl;
@@ -51,10 +52,14 @@ void Robot::robotprocess() {
     }
 
     char rob_broadcastene = 1;
-    DWORD timeout = 100;
 
+    #ifdef _WIN32
+    DWORD timeout = 100;
     ::setsockopt(rob_s, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof timeout);
+    #else
     ::setsockopt(rob_s, SOL_SOCKET, SO_BROADCAST, &rob_broadcastene, sizeof(rob_broadcastene));
+    #endif
+
     // zero out the structure
     memset((char *) &rob_si_me, 0, sizeof(rob_si_me));
 
@@ -111,12 +116,22 @@ void Robot::robotprocess() {
 
             ///---toto je callback funkcia...
             // robot_callback(sens);
-            std::async(std::launch::async, [this](TKobukiData sensdata) { robot_callback(sensdata); },sens);
+            std::async(std::launch::async, [this](TKobukiData sensdata,int address) { robot_callback(sensdata,address); },sens,rob_si_other.sin_addr.s_addr);
         }
     }
 
     std::cout<<"koniec thread2"<<std::endl;
 }
+
+void Robot::ramp(int max_speed) {
+
+    if (this->actual_speed < max_speed) {
+        this->actual_speed += 10;
+    }
+
+    this->setArcSpeed(this->actual_speed, 0);
+}
+
 
 void Robot::setTranslationSpeed(int mmpersec) {
 
@@ -126,7 +141,7 @@ void Robot::setTranslationSpeed(int mmpersec) {
     }
 }
 
-void Robot::setRotationSpeed(double radpersec) { //left
+void Robot::setRotationSpeed(double radpersec) {
 
     std::vector<unsigned char> mess = robot.setRotationSpeed(radpersec);
     if (::sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1) {
@@ -136,18 +151,9 @@ void Robot::setRotationSpeed(double radpersec) { //left
 
 void Robot::setArcSpeed(int mmpersec,int radius) {
 
-    std::vector<unsigned char> mess = robot.setArcSpeed(mmpersec,radius);
+    std::vector<unsigned char> mess = robot.setArcSpeed(mmpersec, radius);
     if (::sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1) {
 
-    }
-}
-
-void Robot::ramp(int max_speed) {
-    int temp_speed = 0;
-
-    while (temp_speed < max_speed) {
-        setArcSpeed(temp_speed, 1);
-        temp_speed += 5;
     }
 }
 
@@ -205,7 +211,8 @@ void Robot::laserprocess() {
         measure.numberOfScans=las_recv_len/sizeof(LaserData);
         //tu mame data..zavolame si funkciu
 
-        std::async(std::launch::async, [this](LaserMeasurement sensdata) { laser_callback(sensdata); },measure);
+       // std::cout<<"doslo odtialto "<<inet_ntoa(las_si_other.sin_addr)<<std::endl;
+        std::async(std::launch::async, [this](LaserMeasurement sensdata, int addres) { laser_callback(sensdata,addres); },measure,las_si_other.sin_addr.s_addr);
         // memcpy(&sens,buff,sizeof(sens));
         // int returnValue=autonomouslaser(measure);
 
