@@ -32,7 +32,8 @@ MainWindow::MainWindow(QWidget *parent) :
     this->port_string = ":8000";
     //this->port_string = ":8889"; // simulator
 
-    this->ip_address = "127.0.0.1"; // Local host - default
+    //this->ip_address = "127.0.0.1"; // Local host - default
+    this->ip_address = "192.168.1.";
     this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string; // Local host - Default
     this->index_of_current_robot = 0;
 
@@ -51,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->pushButton_add_robot->setEnabled(false);
     ui->pushButton_switch_robot->setEnabled(false);
+    ui->lineEdit->setText(QString::fromStdString(this->ip_address));
 
     auto message = std::bind(&MainWindow::process_this_message, this, std::placeholders::_1,
                              std::placeholders::_2, std::placeholders::_3,
