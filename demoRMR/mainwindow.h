@@ -36,6 +36,11 @@
 
 #include <QJoysticks.h>
 
+struct IpReturnMessage {
+    bool b;
+    std::string message;
+};
+
 namespace Ui {
     class MainWindow;
 }
@@ -57,6 +62,8 @@ public:
     //void process_this_message();
     void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
     void issue_robot_command(std::string robot_id, std::string robot_command);
+
+    IpReturnMessage check_ip_address(std::string ip);
 
     std::thread robot_message_thread;
     std::thread th1;

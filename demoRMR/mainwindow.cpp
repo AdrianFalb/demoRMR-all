@@ -90,6 +90,8 @@ void MainWindow::paintEvent(QPaintEvent *event) {
             std::string ip (1, a);
             ip = ip + b;
 
+            // std::cout << "IP of currently selected robot: " << ip << std::endl;
+
             if (std::stoi(ip) == used_robot_ips.at(0)) {
                 copy_of_laser_data = copy_of_laser_data1;
             } else if (std::stoi(ip) == used_robot_ips.at(1)) {
@@ -172,8 +174,8 @@ void MainWindow::set_ip_address(std::string ip_address) {
         /*
         for (int i = 0; i < used_robot_ips.size(); i++) {
             std::cout << used_robot_ips[i] << std::endl;
-        }
-        */
+        }*/
+
     }
 
     //
@@ -186,7 +188,7 @@ int MainWindow::process_this_robot(TKobukiData robotdata,int address) {
 
     IP ipcka;
     ipcka.ip = address;
-    std::cout << "doslo odtialto robot callback" << (int)ipcka.ip2.a << std::endl;
+    //std::cout << "doslo odtialto robot callback" << (int)ipcka.ip2.a << std::endl;
 
     // Joystick
 
@@ -222,7 +224,7 @@ int MainWindow::process_this_lidar(LaserMeasurement laserData, int address) {
 
     IP ipcka;
     ipcka.ip = address;
-    std::cout << "doslo odtialto callback" << (int)ipcka.ip2.a << std::endl;
+    //std::cout << "doslo odtialto callback" << (int)ipcka.ip2.a << std::endl;
 
     if (this->used_robot_ips.empty() == false) {
 
@@ -236,7 +238,9 @@ int MainWindow::process_this_lidar(LaserMeasurement laserData, int address) {
                 memcpy(&copy_of_laser_data2, &laserData, sizeof(LaserMeasurement));
             }
 
-        } else if (this->used_robot_ips.size() == 3) {
+        }
+
+        if (this->used_robot_ips.size() == 3) {
 
             if ((int)ipcka.ip2.a == used_robot_ips.at(2)) {
                 memcpy(&copy_of_laser_data3, &laserData, sizeof(LaserMeasurement));
@@ -421,7 +425,15 @@ void MainWindow::on_pushButton_add_robot_clicked() {
 
     if (!ui->lineEdit->text().isEmpty()) {
 
-        this->set_ip_address(ui->lineEdit->text().toStdString());
+        IpReturnMessage msg = MainWindow::check_ip_address(ui->lineEdit->text().toStdString());
+
+        if (msg.b) {
+            this->set_ip_address(ui->lineEdit->text().toStdString());
+        } else {
+            std::cout << msg.message << std::endl;
+            ui->lineEdit->clear();
+            return;
+        }
     }
 
     while (this->index_of_current_robot < this->robot_group.size() - 1) {
@@ -445,11 +457,58 @@ void MainWindow::on_pushButton_add_robot_clicked() {
     if (this->used_robot_ips.size() == 3) {
         std::cout << "Sorry, you cannot add another robot. There already are " << this->used_robot_ips.size() << " robots being controlled." << std::endl;
         this->ui->lineEdit->setEnabled(false);
-        return;
+    }
+}
+
+IpReturnMessage MainWindow::check_ip_address(std::string ip) {
+
+    IpReturnMessage return_data;
+
+    // Nie je mozne pridat uz pouzivanu IPcku
+    for (int i = 0; i < this->robot_group.size(); i++) {
+        if (this->robot_group[i]->getIpAddress().compare(ip) == 0) {
+            return_data.b = false;
+            return_data.message = "You cannot connect the same robot twice!";
+            return return_data;
+        }
+    }
+
+    // Kontrola ci je IPcka v spravnom formate
+    int number_of_dots = 0;
+    for (int i = 0; i < ip.size(); i++) {
+
+        if (ip[i] == ('.')) {
+            number_of_dots++;
+        }
+    }
+
+    return_data.message = "Ip address is not in correct format!";
+
+    if (number_of_dots == 3) {
+        return_data.b = true;
+        return return_data;
+
+    } else {
+        return_data.b = false;
+        return return_data;
     }
 }
 
 void MainWindow::on_pushButton_9_clicked() { // start button
+
+    // Check if user entered an ip address
+    if (!ui->lineEdit->text().isEmpty()) {
+
+        IpReturnMessage msg = MainWindow::check_ip_address(ui->lineEdit->text().toStdString());
+
+        if (msg.b) {
+            this->set_ip_address(ui->lineEdit->text().toStdString());
+        } else {
+            std::cout << msg.message << std::endl;
+            ui->lineEdit->clear();
+            return;
+        }
+    }
 
     this->forward_speed = 0;
     this->rotation_speed = 0;
@@ -461,12 +520,6 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     */
     connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double))); // pripaja signal k slotu
     connect(this, SIGNAL(startButtonPressed(bool)), this, SLOT(setButtonStates()));
-
-    // Check if user entered an ip address
-    if (!ui->lineEdit->text().isEmpty()) {
-
-        this->set_ip_address(ui->lineEdit->text().toStdString());
-    }
 
     MainWindow::add_new_robot_to_group(this->index_of_current_robot, 1);
 
