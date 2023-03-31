@@ -36,8 +36,18 @@
 
 #include <QJoysticks.h>
 
+union IP {
+    unsigned int ip;
+    struct {
+      unsigned char d;
+      unsigned char c;
+      unsigned char b;
+      unsigned char a;
+    } ip2;
+};
+
 struct IpReturnMessage {
-    bool b;
+    bool ip_valid;
     std::string message;
 };
 

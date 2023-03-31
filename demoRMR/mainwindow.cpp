@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "utilities.h"
 #include "ui_mainwindow.h"
 #include <QPainter>
 #include <math.h>
@@ -10,16 +11,6 @@
     #include <arpa/inet.h>
     #include <sys/socket.h>
 #endif
-
-union IP {
-    unsigned int ip;
-    struct {
-      unsigned char d;
-      unsigned char c;
-      unsigned char b;
-      unsigned char a;
-    } ip2;
-};
 
 MainWindow::MainWindow(QWidget *parent) :
 
@@ -48,8 +39,9 @@ MainWindow::MainWindow(QWidget *parent) :
     this->act_index = -1;
     this->use_camera1 = false;
 
-    this->data_counter = 0;
-
+    ui->pushButton->setEnabled(false);
+    ui->pushButton_7->setEnabled(false);
+    ui->pushButton_8->setEnabled(false);
     ui->pushButton_add_robot->setEnabled(false);
     ui->pushButton_switch_robot->setEnabled(false);
     ui->lineEdit->setText(QString::fromStdString(this->ip_address));
@@ -260,9 +252,9 @@ int MainWindow::process_this_lidar(LaserMeasurement laserData, int address) {
 
 int MainWindow::process_this_camera(cv::Mat cameraData) {
 
-    cameraData.copyTo(frame[(act_index + 1) % 3]);
+    /*cameraData.copyTo(frame[(act_index + 1) % 3]);
     act_index = (act_index + 1) % 3;
-    this->update_laser_picture = 1;
+    this->update_laser_picture = 1;*/
     return 0;
 }
 
@@ -435,7 +427,7 @@ void MainWindow::on_pushButton_add_robot_clicked() {
 
         IpReturnMessage msg = MainWindow::check_ip_address(ui->lineEdit->text().toStdString());
 
-        if (msg.b) {
+        if (msg.ip_valid) {
             this->set_ip_address(ui->lineEdit->text().toStdString());
         } else {
             std::cout << msg.message << std::endl;
@@ -465,6 +457,7 @@ void MainWindow::on_pushButton_add_robot_clicked() {
     if (this->used_robot_ips.size() == 3) {
         std::cout << "Sorry, you cannot add another robot. There already are " << this->used_robot_ips.size() << " robots being controlled." << std::endl;
         this->ui->lineEdit->setEnabled(false);
+        this->ui->pushButton_add_robot->setEnabled(false);
     }
 }
 
@@ -475,29 +468,28 @@ IpReturnMessage MainWindow::check_ip_address(std::string ip) {
     // Nie je mozne pridat uz pouzivanu IPcku
     for (int i = 0; i < this->robot_group.size(); i++) {
         if (this->robot_group[i]->getIpAddress().compare(ip) == 0) {
-            return_data.b = false;
+            return_data.ip_valid = false;
             return_data.message = "You cannot connect the same robot twice!";
             return return_data;
         }
     }
 
     // Kontrola ci je IPcka v spravnom formate
-    int number_of_dots = 0;
+    /*int number_of_dots = 0;
     for (int i = 0; i < ip.size(); i++) {
 
         if (ip[i] == ('.')) {
             number_of_dots++;
         }
-    }
+    }*/
 
-    return_data.message = "Ip address is not in correct format!";
-
-    if (number_of_dots == 3) {
-        return_data.b = true;
+    if (validate_ip(ip)) {
+        return_data.ip_valid = true;
         return return_data;
 
     } else {
-        return_data.b = false;
+        return_data.message = "Ip address is not in correct format!";
+        return_data.ip_valid = false;
         return return_data;
     }
 }
@@ -509,7 +501,7 @@ void MainWindow::on_pushButton_9_clicked() { // start button
 
         IpReturnMessage msg = MainWindow::check_ip_address(ui->lineEdit->text().toStdString());
 
-        if (msg.b) {
+        if (msg.ip_valid) {
             this->set_ip_address(ui->lineEdit->text().toStdString());
         } else {
             std::cout << msg.message << std::endl;
@@ -574,6 +566,11 @@ void MainWindow::on_pushButton_4_clicked() { // stop
 
 void MainWindow::on_pushButton_clicked() {
 
+    // use_camera1 == false -> laser
+    // use_camera1 == true -> camera
+
+    // Kameru nebudem vyuzivat
+    /*
     if (this->use_camera1 == true) {
 
         this->use_camera1 = false;
@@ -584,6 +581,7 @@ void MainWindow::on_pushButton_clicked() {
         this->use_camera1 = true;
         ui->pushButton->setText("Use laser");
     }
+    */
 }
 
 void MainWindow::get_new_frame() {
