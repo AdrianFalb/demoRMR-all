@@ -72,6 +72,10 @@ public:
     void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
     void issue_robot_command(std::string robot_id, std::string robot_command);
 
+    void reset_control_parameters(double m);
+    void reset_booleans_stop_command();
+    void reset_collision_params();
+
     IpReturnMessage check_ip_address(std::string ip);
 
     std::thread robot_message_thread;
@@ -81,9 +85,43 @@ public:
 
     std::vector<int> used_robot_ips;
 
+    bool first_time = true;
+    double meters;
+
+    int angle_delta;
+    int old_angle;
+    int angle;
+
+    bool meters_reset = false;
+    bool rotation_reset = false;
+    bool rotation_from_right = false;
+    bool rotation_from_left = false;
+
+    bool collision_detected_front = false;
+    bool collision_detected_back = false;
+    bool evading_collision = false;
+
+    bool process_this_robot_allowed = false;
+
+    double lidar_dist;
+    double shortest_lidar_distance;
+    double shortest_lidar_angle;
+
+    int number_of_callbacks_encoder_data_was_not_changed = 0;
+    int m_left_delta;
+    int m_left_old;
+
+    bool first_gyro_data = true;    
+
+    int m_right;
+    int m_right_old;
+
+    bool switch_button_was_enabled;
 
     int stopall;
     //int update_skeleton_picture;
+
+    bool robot_not_moving; // daj si flag, ktory sa nastavi na true ked sa robot pohne a resetne sa iba ked je false
 
     struct sockaddr_in las_si_me, las_si_other,las_si_posli; // veci na broadcast laser
     int las_s,  las_recv_len;

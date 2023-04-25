@@ -58,7 +58,7 @@ public:
         this->wasRobotSet = 1;
     }
 
-    void ramp(int max_speed);
+    void ramp(double max_speed, int stopping, int rotating);
 
     void setTranslationSpeed(int mmpersec);
     void setRotationSpeed(double radpersec);
@@ -100,6 +100,30 @@ public:
         return this->actual_speed;
     }
 
+    void set_follow_mode(bool b) {
+        this->follow_mode = b;
+    }
+
+    bool get_follow_mode() {
+        return this->follow_mode;
+    }
+
+    void set_doing_gesture(bool b) {
+        this->doing_gesture = b;
+    }
+
+    bool get_doing_gesture() {
+        return this->doing_gesture;
+    }
+
+    void set_current_command(std::string command) {
+        this->current_command = command;
+    }
+
+    std::string get_current_command() {
+        return this->current_command;
+    }
+
 private:
 
     std::promise<void> ready_promise;
@@ -118,7 +142,10 @@ private:
 
     unsigned short int myRobotGroupIndex;
     bool accept_commands;
-    double actual_speed;
+    bool follow_mode;
+    double actual_speed;    
+    bool doing_gesture;
+    std::string current_command = "";
 
     //veci pre podvozok
     CKobuki robot;

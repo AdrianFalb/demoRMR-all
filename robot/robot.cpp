@@ -31,6 +31,8 @@ Robot::Robot(std::string ipaddressLaser, int laserportRobot, int laserportMe, st
     this->setLaserParameters(ipaddressLaser, laserportRobot, laserportMe, lascallback);
     this->setRobotParameters(ipaddressRobot, robotportRobot, robotportMe, robcallback);
     this->set_actual_speed(0);
+    this->follow_mode = false;
+    this->doing_gesture = false;
     readyFuture = ready_promise.get_future();
 
     std::cout << "Bol som vytvoreny!" << std::endl;
@@ -123,15 +125,70 @@ void Robot::robotprocess() {
     std::cout<<"koniec thread2"<<std::endl;
 }
 
-void Robot::ramp(int max_speed) {
+void Robot::ramp(double max_speed, int stopping, int rotating) {
+    // Forward, backward and stopping
+    if (stopping == 0 && rotating == 0) {
+        // Forward ramp
+        if (this->get_doing_gesture() && this->get_current_command() == "FORWARD") {
+            if (this->actual_speed < max_speed) {
+                this->actual_speed += (max_speed/40);
 
-    if (this->actual_speed < max_speed) {
-        this->actual_speed += 10;
+            } else if (this->actual_speed >= max_speed) {
+                this->actual_speed = max_speed;
+            }
+        // Backward ramp
+        } else if (this->get_doing_gesture() && this->get_current_command() == "BACKWARD") {
+            if (this->actual_speed > max_speed) {
+                this->actual_speed += (max_speed/40);
+                //std::cout<<"tady"<<std::endl;
+
+            } else if (this->actual_speed <= max_speed) {
+                this->actual_speed = max_speed;
+            }
+        }
+
+    } else if (stopping == 1 && rotating == 0) {
+        if (this->actual_speed > 0) {
+            this->actual_speed -= (20);
+
+        } else if (this->actual_speed < 0) {
+            this->actual_speed += (20);
+
+        } else if (this->actual_speed == 0) {
+            this->actual_speed = 0;
+        }
+    // Left, right and stopping
+    } else if (stopping == 0 && rotating == 1) {
+        // Forward ramp
+        if (this->get_doing_gesture() && this->get_current_command() == "LEFT") {
+            if (this->actual_speed < max_speed) {
+                this->actual_speed += (max_speed/40);
+
+            } else if (this->actual_speed >= max_speed) {
+                this->actual_speed = max_speed;
+            }
+        // Backward ramp
+        } else if (this->get_doing_gesture() && this->get_current_command() == "RIGHT") {
+            if (this->actual_speed > max_speed) {
+                this->actual_speed += (max_speed/40);
+
+            } else if (this->actual_speed <= max_speed) {
+                this->actual_speed = max_speed;
+            }
+        }
+
+    } else if (stopping == 1 && rotating == 1) {
+        if (this->actual_speed > 0) {
+            this->actual_speed -= (M_PI/2);
+
+        } else if (this->actual_speed < 0) {
+            this->actual_speed += (M_PI/2);
+
+        } else if (this->actual_speed == 0) {
+            this->actual_speed = 0;
+        }
     }
-
-    this->setArcSpeed(this->actual_speed, 0);
 }
-
 
 void Robot::setTranslationSpeed(int mmpersec) {
 
@@ -245,7 +302,7 @@ void Robot::imageViewer() {
     cv::Mat frameBuf;
 
     while(1) {
-        //std::cout<<"doslo 1"<<std::endl;
+
         if(readyFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             break;
         cap >> frameBuf;
@@ -258,10 +315,9 @@ void Robot::imageViewer() {
 #else
         usleep(20*1000);
 #endif
-        //cv::waitKey(1);
-
-        //std::cout<<"doslo 3"<<std::endl;
+        //cv::waitKey(1);        
     }
+
     std::cout<<"skoncilo vlakno"<<std::endl;
     cap.release();
 }

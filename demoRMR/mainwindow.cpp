@@ -12,6 +12,9 @@
     #include <sys/socket.h>
 #endif
 
+#define MAX_TRANSLATION_SPEED 300
+#define COLLISION_DETECTION_RANGE 300
+
 MainWindow::MainWindow(QWidget *parent) :
 
     QMainWindow(parent),
@@ -44,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton_8->setEnabled(false);
     ui->pushButton_add_robot->setEnabled(false);
     ui->pushButton_switch_robot->setEnabled(false);
+    switch_button_was_enabled = false;
     ui->lineEdit->setText(QString::fromStdString(this->ip_address));
 
     auto message = std::bind(&MainWindow::process_this_message, this, std::placeholders::_1,
@@ -58,6 +62,26 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow() {
     delete ui;    
+}
+
+void MainWindow::reset_control_parameters(double m) {
+    this->meters = m;
+    this->angle = 0;
+    this->number_of_callbacks_encoder_data_was_not_changed = 0;
+}
+
+void MainWindow::reset_booleans_stop_command() {
+    this->meters_reset = false;
+    this->rotation_reset = false;
+    this->rotation_from_right = false;
+    this->rotation_from_left = false;
+    this->first_gyro_data = true;
+}
+
+void MainWindow::reset_collision_params() {
+    this->collision_detected_front = false;
+    this->collision_detected_back = false;
+    this->evading_collision = false;
 }
 
 void MainWindow::paintEvent(QPaintEvent *event) {
@@ -132,16 +156,15 @@ void MainWindow::paintEvent(QPaintEvent *event) {
 
 void MainWindow::setUiValues(double robotX,double robotY,double robotFi) {
 
-     ui->lineEdit_2->setText(QString::number(robotX));
-     ui->lineEdit_3->setText(QString::number(robotY));
-     ui->lineEdit_4->setText(QString::number(robotFi));
+    ui->lineEdit_2->setText(QString::number(robotX));
+    ui->lineEdit_3->setText(QString::number(robotY));
+    ui->lineEdit_4->setText(QString::number(robotFi));
 }
 
 void MainWindow::setButtonStates() {
 
     ui->pushButton_9->setEnabled(false);
-    ui->pushButton_add_robot->setEnabled(true);
-    ui->pushButton_switch_robot->setEnabled(true);    
+    ui->pushButton_add_robot->setEnabled(true);    
 }
 
 void MainWindow::set_ip_address(std::string ip_address) {
@@ -178,37 +201,274 @@ void MainWindow::set_ip_address(std::string ip_address) {
     ui->lineEdit->clear();
 }
 
-int MainWindow::process_this_robot(TKobukiData robotdata,int address) {
+int MainWindow::process_this_robot(TKobukiData robotdata, int address) {    
 
     IP ipcka;
     ipcka.ip = address;
-    //std::cout << "doslo odtialto robot callback" << (int)ipcka.ip2.a << std::endl;
+    // std::cout << "doslo odtialto robot callback" << (int)ipcka.ip2.a << std::endl;
 
-    // Joystick
+    // TODO: pre 1. robot / sprav aj pre dalsich robotov
 
-    /*
-    if (this->forwardspeed == 0 && this->rotationspeed != 0) {push_back
+    LaserMeasurement copy_of_laser_data = copy_of_laser_data1;
 
-        robotGroup.at(0)->setRotationSpeed(this->rotationspeed);
+    if (this->robot_group.empty() == false && this->used_robot_ips.empty() == false) {
 
-    } else if (this->forwardspeed != 0 && this->rotationspeed == 0) {break;
+        if (this->robot_group.at(this->index_of_current_robot)->getIpAddress().empty() == false) {
 
-        robotGroup.at(0)->setTranslationSpeed(this->forwardspeed);
+            char a = this->robot_group.at(this->index_of_current_robot)->getIpAddress().string::at(10);
+            char b = this->robot_group.at(this->index_of_current_robot)->getIpAddress().string::at(11);
+            std::string ip (1, a);
+            ip = ip + b;
 
-    } else if ((this->forwardspeed != 0 && this->rotationspeed != 0)) {
+            // std::cout << "IP of currently selected robot: " << ip << std::endl;
 
-        robotGroup.at(0)->setArcSpeed(this->forwardspeed, this->forwardspeed/this->rotationspeed);
-if (this->used_robot_ips.size() >= 2) {
-    } else {
+            if (std::stoi(ip) == used_robot_ips.at(0)) {
+                copy_of_laser_data = copy_of_laser_data1;
+            } else if (std::stoi(ip) == used_robot_ips.at(1)) {
+                copy_of_laser_data = copy_of_laser_data2;
+            } else if (std::stoi(ip) == used_robot_ips.at(2)) {
+                copy_of_laser_data = copy_of_laser_data3;
+            }
 
-        robotGroup.at(0)->setTranslationSpeed(0);
+            if (std::stoi(ip) == (int)ipcka.ip2.a) {
+                process_this_robot_allowed = true;
+
+            } else {
+                process_this_robot_allowed = false;
+            }
+        }
     }
-    */
+
+    if (process_this_robot_allowed) {
+
+
+
+        // ============================================================================================== ENKODERY A JEDNODUCHA ODOMETRIA
+        if (first_time) {
+            m_left_old = robotdata.EncoderLeft;
+            m_right_old = robotdata.EncoderRight;
+            first_time = false;
+        }
+
+        m_left_delta = m_left_old - robotdata.EncoderLeft;
+
+        if (m_left_delta > (65535)/2) {
+            m_left_delta = (65535 - m_left_old) + robotdata.EncoderLeft;
+            //std::cout << "IF DOPREDU m_left_delta: " << m_left_delta << std::endl;
+
+        } else if (m_left_delta < (-65535)/2) {
+            m_left_delta = (65535 - robotdata.EncoderLeft) + m_left_old;
+            //std::cout << "IF DOZADU m_left_delta: " << m_left_delta << std::endl;
+        }
+
+        m_left_old = robotdata.EncoderLeft;
+        meters = meters + (std::abs(m_left_delta) * 0.000085292090497737556558);
+        //std::cout << "tickToMeter: " << meters << std::endl;
+
+        // ============================================================================================== DETEKCIA KOLIZIE
+
+        shortest_lidar_distance = 10000;
+        for (int k = 0; k < copy_of_laser_data.numberOfScans; k++) {
+
+            lidar_dist = copy_of_laser_data.Data[k].scanDistance;
+
+            if (lidar_dist < shortest_lidar_distance && lidar_dist > 0.0) {
+                shortest_lidar_distance = lidar_dist;
+                shortest_lidar_angle = copy_of_laser_data.Data[k].scanAngle;
+                //std::cout << "Lidar distance: " << shortest_lidar_distance << std::endl;
+                //std::cout << "Lidar angle: " << shortest_lidar_angle << std::endl;
+            }
+
+            if (!collision_detected_front) {
+                if ((shortest_lidar_angle >= 0 && shortest_lidar_angle <= 80) || (shortest_lidar_angle >= 280 && shortest_lidar_angle <= 360)) {
+                    if (shortest_lidar_distance <= COLLISION_DETECTION_RANGE) {
+                        std::cout << "INFO: Collision Detected at the front at an angle: " << shortest_lidar_angle << " Stopping" << std::endl;
+                        // STOP COMMAND
+                        this->reset_control_parameters(0.8);
+                        this->reset_booleans_stop_command();
+                        robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+                        collision_detected_front = true;
+                    }
+                }
+
+            }
+
+            if (!collision_detected_back) {
+                if ((shortest_lidar_angle >= 100 && shortest_lidar_angle <= 260)) {
+                    if (shortest_lidar_distance <= COLLISION_DETECTION_RANGE) {
+                        std::cout << "INFO: Collision Detected at the back at an angle: " << shortest_lidar_angle << " Stopping" << std::endl;
+                        // STOP COMMAND
+                        this->reset_control_parameters(0.8);
+                        this->reset_booleans_stop_command();
+                        robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+                        collision_detected_back = true;
+                    }
+                }
+            }
+        }
+
+        // ============================================================================================== TRANSLATION
+        if (meters >= 1 && !rotation_from_left && !rotation_from_right) {
+            this->reset_collision_params();
+            robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+            robot_group.at(this->index_of_current_robot)->ramp(0, 1, 0);
+            robot_group.at(this->index_of_current_robot)->setArcSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed(), 0);
+        // Pohyb vpred po rotacii
+        } else if (meters >= 1 && (rotation_from_left || rotation_from_right)) {
+            this->reset_collision_params();
+            robot_group.at(this->index_of_current_robot)->ramp(0, 1, 0);
+            robot_group.at(this->index_of_current_robot)->setArcSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed(), 0);
+
+            // if first rotation was right I go left
+            if (!rotation_reset && meters_reset && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && rotation_from_right) {
+                this->reset_control_parameters(0);
+                rotation_reset = true;
+                first_gyro_data = true;
+                robot_group.at(this->index_of_current_robot)->set_current_command("LEFT");
+
+            // if first rotation was left I go right
+            } else if (!rotation_reset && meters_reset && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && rotation_from_left) {
+                this->reset_control_parameters(0);
+                rotation_reset = true;
+                first_gyro_data = true;
+                robot_group.at(this->index_of_current_robot)->set_current_command("RIGHT");
+            }
+
+        } else if (meters != 0 && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0) {
+            robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+        }
+
+        // ============================================================================================== AUTOMATIC TRANSLATION AFTER COLLISION WAS DETECTED
+        if (collision_detected_front && collision_detected_back) {
+
+            // STOP COMMAND
+            this->reset_control_parameters(0);
+            this->reset_booleans_stop_command();
+            robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+
+        } else if ((collision_detected_front && !collision_detected_back) && (robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 || evading_collision)) {
+            evading_collision = true;
+            robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+            robot_group.at(this->index_of_current_robot)->set_current_command("BACKWARD");
+
+        } else if ((collision_detected_back && !collision_detected_front) && (robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 || evading_collision)) {
+            evading_collision = true;
+            robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+            robot_group.at(this->index_of_current_robot)->set_current_command("FORWARD");
+        }
+
+        if ((collision_detected_front && collision_detected_back) && (m_left_old == robotdata.EncoderLeft)) {
+            std::cout << "INFO: Robot is not moving" << std::endl;
+            this->reset_collision_params();
+            this->robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+        }
+
+        // ============================================================================================== ROTATION
+        if (angle >= 90 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == true) {
+
+            // Po tom ako robot zrotuje naspat sa prestane vykonavat prikaz
+            if (rotation_reset && (rotation_from_right || rotation_from_left)) {
+                robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+            }
+
+            //robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+            robot_group.at(this->index_of_current_robot)->ramp(0, 1, 1);
+            robot_group.at(this->index_of_current_robot)->setRotationSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed());
+
+            // forward
+            if (!meters_reset && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0) {
+                this->reset_control_parameters(0);
+                meters_reset = true;
+                robot_group.at(this->index_of_current_robot)->set_current_command("FORWARD");
+            }
+
+        } else if (angle != 0 && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == true) {
+            robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+
+        } else if (angle >= 90 && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
+            angle = 0;
+            this->reset_booleans_stop_command();
+        }
+
+        // ============================================================================================== COMMANDS
+        if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() && robot_group.at(this->index_of_current_robot)->get_current_command() == "FORWARD") {
+            robot_group.at(this->index_of_current_robot)->ramp(MAX_TRANSLATION_SPEED, 0, 0);
+            robot_group.at(this->index_of_current_robot)->setArcSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed(), 0);
+
+        } else if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() && robot_group.at(this->index_of_current_robot)->get_current_command() == "BACKWARD") {
+            robot_group.at(this->index_of_current_robot)->ramp(-MAX_TRANSLATION_SPEED, 0, 0);
+            robot_group.at(this->index_of_current_robot)->setArcSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed(), 0);
+
+        } else if (robot_group.at(this->index_of_current_robot)->get_current_command() == "STOP") {
+            robot_group.at(this->index_of_current_robot)->ramp(0, 1, 0);
+            robot_group.at(this->index_of_current_robot)->setArcSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed(), 0);
+
+        } else if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() && robot_group.at(this->index_of_current_robot)->get_current_command() == "RIGHT") {
+
+            if (first_gyro_data) {
+                old_angle = robotdata.GyroAngle/100;
+                first_gyro_data = false;
+
+                if (!rotation_from_left) {
+                    rotation_from_right = true;
+                }
+            }
+
+            robot_group.at(this->index_of_current_robot)->ramp((-M_PI/2), 0, 1);
+            robot_group.at(this->index_of_current_robot)->setRotationSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed());
+            angle_delta = (old_angle - (robotdata.GyroAngle/100));
+
+            if (angle_delta < old_angle) {
+                angle_delta = (std::abs(old_angle) - (robotdata.GyroAngle/100));
+            }
+
+            old_angle = robotdata.GyroAngle/100;
+            angle += angle_delta;
+
+            std::cout << "Prejdeny uhol: " << angle << std::endl;
+
+        } else if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() && robot_group.at(this->index_of_current_robot)->get_current_command() == "LEFT") {
+
+            if (first_gyro_data) {
+                old_angle = robotdata.GyroAngle/100;
+                first_gyro_data = false;
+
+                if (!rotation_from_right) {
+                    rotation_from_left = true;
+                }
+            }
+
+            robot_group.at(this->index_of_current_robot)->ramp((M_PI/2), 0, 1);
+            robot_group.at(this->index_of_current_robot)->setRotationSpeed(robot_group.at(this->index_of_current_robot)->get_actual_speed());
+            angle_delta = (robotdata.GyroAngle/100) - old_angle;
+
+            if (angle_delta < robotdata.GyroAngle/100) {
+                angle_delta = std::abs((robotdata.GyroAngle/100)) - old_angle;
+            }
+
+            old_angle = robotdata.GyroAngle/100;
+            angle += angle_delta;
+
+            std::cout << "Prejdeny uhol: " << angle << std::endl;
+        }
+
+        // RESET ACTUAL SPEED OF ROBOT WHEN STOPPED ABRUPTLY
+        if (m_left_old == robotdata.EncoderLeft) {
+            number_of_callbacks_encoder_data_was_not_changed++;
+        }
+
+        if (this->robot_group.at(index_of_current_robot)->get_actual_speed() != 0 && this->robot_group.at(index_of_current_robot)->get_current_command() == "STOP" && (number_of_callbacks_encoder_data_was_not_changed >= 10)) {
+            std::cout << "INFO: Resetting robot's actual speed" << std::endl;
+            this->robot_group.at(index_of_current_robot)->set_actual_speed(0);
+            number_of_callbacks_encoder_data_was_not_changed = 0;
+        }
+
+    }
 
     if (this->data_counter % 5) {
 
         emit uiValuesChanged(this->robot_data.EncoderLeft, 11, 12);
-    }
+    }   
 
     this->data_counter++;
     return 0;
@@ -366,38 +626,79 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
         return;
     }
 
-    if (robot_command == "STOP" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+    if (robot_command == "OPERATOR_STOP" && robot_group.at(this->index_of_current_robot)->get_accept_commands()) {
         robot_group.at(this->index_of_current_robot)->setArcSpeed(0, 0);
+    }
 
-    } else if (robot_command == "FORWARD" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+    if (robot_command == "FOLLOW_OPERATOR" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
+        robot_group.at(this->index_of_current_robot)->set_follow_mode(true);
+    } else if (robot_command == "FOLLOW_OPERATOR" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
+        robot_group.at(this->index_of_current_robot)->set_follow_mode(false);
+    }
+
+    if (robot_command == "OPERATOR_FORWARD" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
         robot_group.at(this->index_of_current_robot)->setArcSpeed(150, 0);
 
-    } else if (robot_command == "BACKWARD" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+    } else if (robot_command == "OPERATOR_BACKWARD" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
         robot_group.at(this->index_of_current_robot)->setArcSpeed(-150, 0);
+    }
 
-    } else if (robot_command == "RIGHT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
-        robot_group.at(this->index_of_current_robot)->setRotationSpeed((-1.5707/4));
+    if (robot_command == "STOP" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
+            this->reset_control_parameters(0);
+            this->reset_booleans_stop_command();
+            robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+    }
 
-    } else if (robot_command == "LEFT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
-        robot_group.at(this->index_of_current_robot)->setRotationSpeed((1.5707/4));
+    /*if (robot_command == "STOP" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
+        this->reset_control_parameters(0);
+        this->reset_booleans_stop_command();
+        robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+    }*/
 
-    } else if (robot_command == "OPERATOR_RIGHT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
-        robot_group.at(this->index_of_current_robot)->setRotationSpeed((-1.5707/4));
+    // ============================================================================================== GESTURE CONTROL
+    if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
+        if (robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+            if (robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
 
-    } else if (robot_command == "OPERATOR_LEFT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
-        robot_group.at(this->index_of_current_robot)->setRotationSpeed((1.5707/4));
+                if (robot_command == "FORWARD") {
+                    this->reset_control_parameters(0);
+                    robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+                    robot_group.at(this->index_of_current_robot)->set_current_command(robot_command);
+
+                } else if (robot_command == "BACKWARD") {
+                    this->reset_control_parameters(0);
+                    robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+                    robot_group.at(this->index_of_current_robot)->set_current_command(robot_command);
+
+                } else if (robot_command == "RIGHT") {
+                    this->reset_control_parameters(0);
+                    robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+                    robot_group.at(this->index_of_current_robot)->set_current_command(robot_command);
+
+                } else if (robot_command == "LEFT") {
+                    this->reset_control_parameters(0);
+                    robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+                    robot_group.at(this->index_of_current_robot)->set_current_command(robot_command);
+                }
+
+                /*else if (robot_command == "OPERATOR_RIGHT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
+                    robot_group.at(this->index_of_current_robot)->setRotationSpeed((-1.5707/4));
+
+                } else if (robot_command == "OPERATOR_LEFT" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
+                    robot_group.at(this->index_of_current_robot)->setRotationSpeed((1.5707/4));
+
+                }*/
+            }
+        }
     }
 }
 
 void MainWindow::set_index_of_current_robot(unsigned short int robot_index) {
-
     this->index_of_current_robot = robot_index;
-
 }
 
 void MainWindow::add_new_robot_to_group(unsigned short int robot_index, unsigned short int number_of_robots) {
 
-    //MainWindow::robotGroup.resize(number_of_robots, new Robot());
     MainWindow::robot_group.insert(std::map<unsigned short int, Robot*>::value_type(robot_index, new Robot()));
     MainWindow::robot_group.at(robot_index)->setLaserParameters(this->ip_address, this->laserParametersLaserPortOut, this->laserParametersLaserPortIn, /*[](LaserMeasurement dat)->int{std::cout<<"som z lambdy callback"<<std::endl;return 0;}*/std::bind(&MainWindow::process_this_lidar, this, std::placeholders::_1,std::placeholders::_2));
     MainWindow::robot_group.at(robot_index)->setRobotParameters(this->ip_address, this->robotParametersLaserPortOut, this->robotParametersLaserPortIn, std::bind(&MainWindow::process_this_robot, this, std::placeholders::_1, std::placeholders::_2));
@@ -407,6 +708,11 @@ void MainWindow::add_new_robot_to_group(unsigned short int robot_index, unsigned
 
     MainWindow::set_index_of_current_robot(robot_index);
     MainWindow::robot_group.at(this->index_of_current_robot)->robotStart();
+
+    if (MainWindow::robot_group.size() > 1 && !switch_button_was_enabled) {
+        ui->pushButton_switch_robot->setEnabled(true);
+        switch_button_was_enabled = true;
+    }
 }
 
 void MainWindow::on_pushButton_switch_robot_clicked() {
@@ -418,7 +724,11 @@ void MainWindow::on_pushButton_switch_robot_clicked() {
         this->index_of_current_robot = 0;
     }
 
-    // std::cout << "index of current robot: " << this->indexOfCurrentRobot << std::endl;
+    // NEW
+    this->reset_booleans_stop_command();
+    this->reset_collision_params();
+    this->reset_control_parameters(0);
+    this->first_time = true;
 }
 
 void MainWindow::on_pushButton_add_robot_clicked() {        
@@ -453,6 +763,12 @@ void MainWindow::on_pushButton_add_robot_clicked() {
 
     MainWindow::add_new_robot_to_group(this->index_of_current_robot, this->robot_group.size() + 1);
 
+    // NEW
+    this->reset_booleans_stop_command();
+    this->reset_collision_params();
+    this->reset_control_parameters(0);
+    this->first_time = true;
+
     // Vypne lineEdit po pridani troch robotov
     if (this->used_robot_ips.size() == 3) {
         std::cout << "Sorry, you cannot add another robot. There already are " << this->used_robot_ips.size() << " robots being controlled." << std::endl;
@@ -472,16 +788,7 @@ IpReturnMessage MainWindow::check_ip_address(std::string ip) {
             return_data.message = "You cannot connect the same robot twice!";
             return return_data;
         }
-    }
-
-    // Kontrola ci je IPcka v spravnom formate
-    /*int number_of_dots = 0;
-    for (int i = 0; i < ip.size(); i++) {
-
-        if (ip[i] == ('.')) {
-            number_of_dots++;
-        }
-    }*/
+    }    
 
     if (validate_ip(ip)) {
         return_data.ip_valid = true;
@@ -539,29 +846,51 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     emit startButtonPressed(true); // vyslanie signalu
 }
 
-void MainWindow::on_pushButton_2_clicked() { //forward
+void MainWindow::on_pushButton_2_clicked() { // forward
 
-    robot_group.at(this->index_of_current_robot)->setTranslationSpeed(500);
+    if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
+
+        this->reset_control_parameters(0);
+        robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+        robot_group.at(this->index_of_current_robot)->set_current_command("FORWARD");        
+    }
 }
 
 void MainWindow::on_pushButton_3_clicked() { // back
 
-    robot_group.at(this->index_of_current_robot)->setTranslationSpeed(-250);    
+    if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
+
+        this->reset_control_parameters(0);
+        robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+        robot_group.at(this->index_of_current_robot)->set_current_command("BACKWARD");        
+    }
 }
 
 void MainWindow::on_pushButton_6_clicked() { // left
 
-    robot_group.at(this->index_of_current_robot)->setRotationSpeed(3.14159/2);    
+    if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
+
+        this->reset_control_parameters(0);
+        robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+        robot_group.at(this->index_of_current_robot)->set_current_command("LEFT");        
+    }
 }
 
 void MainWindow::on_pushButton_5_clicked() { // right
 
-    robot_group.at(this->index_of_current_robot)->setRotationSpeed(-3.14159/2); 
+    if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
+
+        this->reset_control_parameters(0);
+        robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+        robot_group.at(this->index_of_current_robot)->set_current_command("RIGHT");        
+    }
 }
 
 void MainWindow::on_pushButton_4_clicked() { // stop
 
-    robot_group.at(this->index_of_current_robot)->setTranslationSpeed(0);
+    this->reset_control_parameters(0);
+    this->reset_booleans_stop_command();
+    robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
 }
 
 void MainWindow::on_pushButton_clicked() {
