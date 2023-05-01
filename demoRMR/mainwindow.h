@@ -72,6 +72,7 @@ public:
     void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
     void issue_robot_command(std::string robot_id, std::string robot_command);
 
+    // Methods for reseting parameters
     void reset_control_parameters(double m);
     void reset_booleans_stop_command();
     void reset_collision_params();
@@ -86,17 +87,20 @@ public:
     std::vector<int> used_robot_ips;
 
     bool first_time = true;
-    double meters;
 
+    // Robot control
+    double meters;
     int angle_delta;
     int old_angle;
     int angle;
 
+    // Booleans for robot control
     bool meters_reset = false;
     bool rotation_reset = false;
     bool rotation_from_right = false;
     bool rotation_from_left = false;
 
+    // Booleans for collision detection
     bool collision_detected_front = false;
     bool collision_detected_back = false;
     bool evading_collision = false;
@@ -149,24 +153,31 @@ public:
 #endif
 
 private slots:
-    void on_pushButton_9_clicked();
-    void on_pushButton_2_clicked();
-    void on_pushButton_3_clicked();
-    void on_pushButton_6_clicked();
-    void on_pushButton_5_clicked();
-    void on_pushButton_4_clicked();
+    void on_pushButton_start_clicked();
+    void on_pushButton_forward_clicked();
+    void on_pushButton_back_clicked();
+    void on_pushButton_left_clicked();
+    void on_pushButton_right_clicked();
+    void on_pushButton_stop_clicked();
     void on_pushButton_clicked();
-
     void on_pushButton_switch_robot_clicked();
     void on_pushButton_add_robot_clicked();
+    void on_pushButton_follow_mode_clicked();
+    void on_pushButton_accept_commands_clicked();
     void get_new_frame();
 
 private:
+
+    void add_new_robot_to_group(unsigned short int robot_index, unsigned short int number_of_robots);
+    void set_index_of_current_robot(unsigned short int robot_index);
+    void set_ip_address(std::string ip_address);
+    void disable_buttons();
 
     //JOYINFO joystick_info;
     Ui::MainWindow *ui;
     void paintEvent(QPaintEvent *event); // Q_DECL_OVERRIDE;
     int update_laser_picture;
+
     LaserMeasurement copy_of_laser_data1;
     LaserMeasurement copy_of_laser_data2;
     LaserMeasurement copy_of_laser_data3;
@@ -191,19 +202,17 @@ private:
     QJoysticks *instance;
 
     double forward_speed; // mm/s
-    double rotation_speed; // omega/s
-
-    void add_new_robot_to_group(unsigned short int robot_index, unsigned short int number_of_robots);
-    void set_index_of_current_robot(unsigned short int robot_index);
-    void set_ip_address(std::string ip_address);
+    double rotation_speed; // omega/s    
 
 public slots:
-    void setUiValues(double robotX,double robotY,double robotFi);
-    void setButtonStates();
+    void set_ui_values(double robotX,double robotY,double robotFi);
+    void set_robot_modes(bool mode, bool power_mode);
+    void enable_buttons();
 
 signals:
-    void uiValuesChanged(double newrobotX,double newrobotY,double newrobotFi); ///toto nema telo
-    void startButtonPressed(bool pressed);
+    void ui_values_changed(double newrobotX, double newrobotY, double newrobotFi); ///toto nema telo
+    void start_button_pressed(bool pressed);
+    void robot_modes_changed(bool mode_changed, bool power_mode_changed);
 
 };
 

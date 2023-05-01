@@ -3,7 +3,11 @@
 #include "ui_mainwindow.h"
 #include <QPainter>
 #include <math.h>
+
 #ifdef _WIN32
+    #ifndef M_PI
+        #define M_PI 3.14159265358979323846
+    #endif
     #include <windows.h>
 #else
     #include <termios.h>
@@ -14,6 +18,7 @@
 
 #define MAX_TRANSLATION_SPEED 300
 #define COLLISION_DETECTION_RANGE 300
+//#define SIMULATOR
 
 MainWindow::MainWindow(QWidget *parent) :
 
@@ -23,17 +28,22 @@ MainWindow::MainWindow(QWidget *parent) :
     // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
     this->http_string = "http://";
     this->file_string = "/stream.mjpg";
-    this->port_string = ":8000";
-    //this->port_string = ":8889"; // simulator
 
-    //this->ip_address = "127.0.0.1"; // Local host - default
+#ifndef SIMULATOR
+    this->port_string = ":8000";
     this->ip_address = "192.168.1.";
+#endif
+
+#ifdef SIMULATOR
+    this->port_string = ":8889"; // simulator
+    this->ip_address = "127.0.0.1"; // Local host - default
+#endif
+
     this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string; // Local host - Default
     this->index_of_current_robot = 0;
 
     this->laserParametersLaserPortOut = 52999;
     this->laserParametersLaserPortIn = 5299;
-
     this->robotParametersLaserPortOut = 53000;
     this->robotParametersLaserPortIn = 5300;
 
@@ -42,11 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
     this->act_index = -1;
     this->use_camera1 = false;
 
-    ui->pushButton->setEnabled(false);
-    ui->pushButton_7->setEnabled(false);
-    ui->pushButton_8->setEnabled(false);
-    ui->pushButton_add_robot->setEnabled(false);
-    ui->pushButton_switch_robot->setEnabled(false);
+    this->disable_buttons();
+
     switch_button_was_enabled = false;
     ui->lineEdit->setText(QString::fromStdString(this->ip_address));
 
@@ -103,11 +110,15 @@ void MainWindow::paintEvent(QPaintEvent *event) {
 
         if (this->robot_group.at(this->index_of_current_robot)->getIpAddress().empty() == false) {
 
+#ifndef SIMULATOR
             char a = this->robot_group.at(this->index_of_current_robot)->getIpAddress().string::at(10);
             char b = this->robot_group.at(this->index_of_current_robot)->getIpAddress().string::at(11);
             std::string ip (1, a);
             ip = ip + b;
-
+#endif
+#ifdef SIMULATOR
+            std::string ip = "1";
+#endif
             // std::cout << "IP of currently selected robot: " << ip << std::endl;
 
             if (std::stoi(ip) == used_robot_ips.at(0)) {
@@ -154,17 +165,53 @@ void MainWindow::paintEvent(QPaintEvent *event) {
     }
 }
 
-void MainWindow::setUiValues(double robotX,double robotY,double robotFi) {
-
+void MainWindow::set_ui_values(double robotX,double robotY,double robotFi) {
     ui->lineEdit_2->setText(QString::number(robotX));
     ui->lineEdit_3->setText(QString::number(robotY));
     ui->lineEdit_4->setText(QString::number(robotFi));
 }
 
-void MainWindow::setButtonStates() {
+void MainWindow::set_robot_modes(bool mode, bool power_mode) {
+    if (mode) {
+        ui->lineEdit_mode->setText("Awake");
+    } else {
+        ui->lineEdit_mode->setText("Asleep");
+    }
 
-    ui->pushButton_9->setEnabled(false);
-    ui->pushButton_add_robot->setEnabled(true);    
+    if (power_mode) {
+        ui->lineEdit_power_mode->setText("Follow mode");
+    } else {
+        ui->lineEdit_power_mode->setText("Control mode");
+    }
+}
+
+void MainWindow::disable_buttons() {
+
+    ui->pushButton_forward->setEnabled(false);
+    ui->pushButton_right->setEnabled(false);
+    ui->pushButton_left->setEnabled(false);
+    ui->pushButton_back->setEnabled(false);
+    ui->pushButton_stop->setEnabled(false);
+    ui->pushButton->setEnabled(false);
+    ui->pushButton_7->setEnabled(false);
+    ui->pushButton_8->setEnabled(false);
+    ui->pushButton_add_robot->setEnabled(false);
+    ui->pushButton_switch_robot->setEnabled(false);
+    ui->pushButton_follow_mode->setEnabled(false);
+    ui->pushButton_accept_commands->setEnabled(false);
+}
+
+void MainWindow::enable_buttons() {
+
+    ui->pushButton_start->setEnabled(false);
+    ui->pushButton_add_robot->setEnabled(true);
+    ui->pushButton_follow_mode->setEnabled(true);
+    ui->pushButton_accept_commands->setEnabled(true);
+    ui->pushButton_forward->setEnabled(true);
+    ui->pushButton_right->setEnabled(true);
+    ui->pushButton_left->setEnabled(true);
+    ui->pushButton_back->setEnabled(true);
+    ui->pushButton_stop->setEnabled(true);
 }
 
 void MainWindow::set_ip_address(std::string ip_address) {
@@ -193,9 +240,7 @@ void MainWindow::set_ip_address(std::string ip_address) {
             std::cout << used_robot_ips[i] << std::endl;
         }*/
 
-    }
-
-    //
+    }   
 
     this->camera_address = this->http_string + this->ip_address + this->port_string + this->file_string;
     ui->lineEdit->clear();
@@ -207,19 +252,20 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
     ipcka.ip = address;
     // std::cout << "doslo odtialto robot callback" << (int)ipcka.ip2.a << std::endl;
 
-    // TODO: pre 1. robot / sprav aj pre dalsich robotov
-
     LaserMeasurement copy_of_laser_data = copy_of_laser_data1;
 
     if (this->robot_group.empty() == false && this->used_robot_ips.empty() == false) {
 
         if (this->robot_group.at(this->index_of_current_robot)->getIpAddress().empty() == false) {
-
+#ifndef SIMULATOR
             char a = this->robot_group.at(this->index_of_current_robot)->getIpAddress().string::at(10);
             char b = this->robot_group.at(this->index_of_current_robot)->getIpAddress().string::at(11);
             std::string ip (1, a);
             ip = ip + b;
-
+#endif
+#ifdef SIMULATOR
+            std::string ip = "1";
+#endif
             // std::cout << "IP of currently selected robot: " << ip << std::endl;
 
             if (std::stoi(ip) == used_robot_ips.at(0)) {
@@ -240,8 +286,6 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
     }
 
     if (process_this_robot_allowed) {
-
-
 
         // ============================================================================================== ENKODERY A JEDNODUCHA ODOMETRIA
         if (first_time) {
@@ -463,11 +507,13 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
             number_of_callbacks_encoder_data_was_not_changed = 0;
         }
 
+        emit robot_modes_changed(this->robot_group.at(this->index_of_current_robot)->get_accept_commands(),
+                                 this->robot_group.at(this->index_of_current_robot)->get_follow_mode());
     }
 
     if (this->data_counter % 5) {
 
-        emit uiValuesChanged(this->robot_data.EncoderLeft, 11, 12);
+        emit ui_values_changed(this->robot_data.EncoderLeft, 11, 12);
     }   
 
     this->data_counter++;
@@ -604,6 +650,10 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
 
     bool command_allowed = true;
 
+    if (this->robot_group.empty()) {
+        return;
+    }
+
     for(unsigned short int i = 0; i < robot_group.size(); i++) {
 
        if (robot_ip_address == robot_group[i]->getIpAddress()) {
@@ -626,27 +676,42 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
         return;
     }
 
-    if (robot_command == "OPERATOR_STOP" && robot_group.at(this->index_of_current_robot)->get_accept_commands()) {
-        robot_group.at(this->index_of_current_robot)->setArcSpeed(0, 0);
-    }
-
-    if (robot_command == "FOLLOW_OPERATOR" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
-        robot_group.at(this->index_of_current_robot)->set_follow_mode(true);
-    } else if (robot_command == "FOLLOW_OPERATOR" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
-        robot_group.at(this->index_of_current_robot)->set_follow_mode(false);
-    }
-
-    if (robot_command == "OPERATOR_FORWARD" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
-        robot_group.at(this->index_of_current_robot)->setArcSpeed(150, 0);
-
-    } else if (robot_command == "OPERATOR_BACKWARD" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
-        robot_group.at(this->index_of_current_robot)->setArcSpeed(-150, 0);
-    }
-
     if (robot_command == "STOP" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
             this->reset_control_parameters(0);
             this->reset_booleans_stop_command();
             robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+    }
+
+    // ============================================================================================== FOLLOW MODE
+    if (robot_group.at(this->index_of_current_robot)->get_accept_commands() == true) {
+
+        // Turning follow mode on/ off
+        if (robot_command == "FOLLOW_OPERATOR" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
+            robot_group.at(this->index_of_current_robot)->set_follow_mode(true);
+
+        } else if (robot_command == "FOLLOW_OPERATOR" && robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
+            robot_group.at(this->index_of_current_robot)->set_follow_mode(false);
+        }
+
+        std::cout << "Robot command: " << robot_command << std::endl;
+
+        // Movement commands when in follow mode
+        if (robot_group.at(this->index_of_current_robot)->get_follow_mode() == true) {
+
+            if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
+
+                if (robot_command == "FOLLOW_FORWARD") {
+                    this->reset_control_parameters(0);
+                    robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+                    robot_group.at(this->index_of_current_robot)->set_current_command("FORWARD");
+
+                } else if (robot_command == "FOLLOW_BACKWARD") {
+                    this->reset_control_parameters(0);
+                    robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
+                    robot_group.at(this->index_of_current_robot)->set_current_command("BACKWARD");
+                }
+            }
+        }
     }
 
     /*if (robot_command == "STOP" && robot_group.at(this->index_of_current_robot)->get_accept_commands() == true && robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
@@ -710,7 +775,7 @@ void MainWindow::add_new_robot_to_group(unsigned short int robot_index, unsigned
     MainWindow::robot_group.at(this->index_of_current_robot)->robotStart();
 
     if (MainWindow::robot_group.size() > 1 && !switch_button_was_enabled) {
-        ui->pushButton_switch_robot->setEnabled(true);
+        ui->pushButton_switch_robot->setEnabled(true);        
         switch_button_was_enabled = true;
     }
 }
@@ -724,11 +789,14 @@ void MainWindow::on_pushButton_switch_robot_clicked() {
         this->index_of_current_robot = 0;
     }
 
-    // NEW
     this->reset_booleans_stop_command();
     this->reset_collision_params();
     this->reset_control_parameters(0);
     this->first_time = true;
+
+    if (!this->robot_group.empty()) {
+        this->robot_group.at(this->index_of_current_robot)->set_follow_mode(false);
+    }
 }
 
 void MainWindow::on_pushButton_add_robot_clicked() {        
@@ -754,20 +822,19 @@ void MainWindow::on_pushButton_add_robot_clicked() {
     this->index_of_current_robot += 1;    
 
     // Porty sa menia iba v simulatore, kazdy robot ma rovnake porty
-    /*
+#ifdef SIMULATOR
     this->laserParametersLaserPortIn += 10;
     this->laserParametersLaserPortOut += 10;
     this->robotParametersLaserPortIn += 10;
-    this->robotParametersLaserPortOut += 10;
-    */
+    this->robotParametersLaserPortOut += 10;    
+#endif
 
     MainWindow::add_new_robot_to_group(this->index_of_current_robot, this->robot_group.size() + 1);
 
-    // NEW
     this->reset_booleans_stop_command();
     this->reset_collision_params();
     this->reset_control_parameters(0);
-    this->first_time = true;
+    this->first_time = true;    
 
     // Vypne lineEdit po pridani troch robotov
     if (this->used_robot_ips.size() == 3) {
@@ -801,7 +868,7 @@ IpReturnMessage MainWindow::check_ip_address(std::string ip) {
     }
 }
 
-void MainWindow::on_pushButton_9_clicked() { // start button
+void MainWindow::on_pushButton_start_clicked() { // start button
 
     // Check if user entered an ip address
     if (!ui->lineEdit->text().isEmpty()) {
@@ -825,8 +892,9 @@ void MainWindow::on_pushButton_9_clicked() { // start button
     laserthreadID=pthread_create(&laserthreadHandle,NULL,&laserUDPVlakno,(void *)this);
     robotthreadID=pthread_create(&robotthreadHandle,NULL,&robotUDPVlakno,(void *)this);
     */
-    connect(this, SIGNAL(uiValuesChanged(double, double, double)), this, SLOT(setUiValues(double, double, double))); // pripaja signal k slotu
-    connect(this, SIGNAL(startButtonPressed(bool)), this, SLOT(setButtonStates()));
+    connect(this, SIGNAL(ui_values_changed(double, double, double)), this, SLOT(set_ui_values(double, double, double))); // pripaja signal k slotu
+    connect(this, SIGNAL(start_button_pressed(bool)), this, SLOT(enable_buttons()));
+    connect(this, SIGNAL(robot_modes_changed(bool, bool)), this, SLOT(set_robot_modes(bool, bool)));
 
     MainWindow::add_new_robot_to_group(this->index_of_current_robot, 1);
 
@@ -843,10 +911,10 @@ void MainWindow::on_pushButton_9_clicked() { // start button
             if(/*js==0 &&*/ axis==0){rotation_speed=-value*(3.14159/2.0);}}
     );
 
-    emit startButtonPressed(true); // vyslanie signalu
+    emit start_button_pressed(true); // vyslanie signalu
 }
 
-void MainWindow::on_pushButton_2_clicked() { // forward
+void MainWindow::on_pushButton_forward_clicked() { // forward
 
     if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
 
@@ -856,7 +924,7 @@ void MainWindow::on_pushButton_2_clicked() { // forward
     }
 }
 
-void MainWindow::on_pushButton_3_clicked() { // back
+void MainWindow::on_pushButton_back_clicked() { // back
 
     if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
 
@@ -866,7 +934,7 @@ void MainWindow::on_pushButton_3_clicked() { // back
     }
 }
 
-void MainWindow::on_pushButton_6_clicked() { // left
+void MainWindow::on_pushButton_left_clicked() { // left
 
     if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
 
@@ -876,7 +944,7 @@ void MainWindow::on_pushButton_6_clicked() { // left
     }
 }
 
-void MainWindow::on_pushButton_5_clicked() { // right
+void MainWindow::on_pushButton_right_clicked() { // right
 
     if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false) {
 
@@ -886,11 +954,43 @@ void MainWindow::on_pushButton_5_clicked() { // right
     }
 }
 
-void MainWindow::on_pushButton_4_clicked() { // stop
+void MainWindow::on_pushButton_stop_clicked() { // stop
 
     this->reset_control_parameters(0);
     this->reset_booleans_stop_command();
     robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+}
+
+void MainWindow::on_pushButton_follow_mode_clicked() {
+
+    if (!this->robot_group.empty()) {
+
+        if (robot_group.at(this->index_of_current_robot)->get_follow_mode() == false) {
+            robot_group.at(this->index_of_current_robot)->set_follow_mode(true);
+            ui->pushButton_follow_mode->setText("Turn off Follow Mode");            
+
+        } else {
+            robot_group.at(this->index_of_current_robot)->set_follow_mode(false);
+            ui->pushButton_follow_mode->setText("Turn on Follow Mode");            
+        }
+    }
+}
+
+void MainWindow::on_pushButton_accept_commands_clicked() {
+
+    if (!this->robot_group.empty()) {
+
+        if (robot_group.at(this->index_of_current_robot)->get_accept_commands() == false) {
+            robot_group.at(this->index_of_current_robot)->set_accept_commands(true);
+            ui->pushButton_accept_commands->setText("Put robot to sleep");
+
+        } else {
+            robot_group.at(this->index_of_current_robot)->set_accept_commands(false);
+            ui->pushButton_accept_commands->setText("Wake up robot");            
+        }
+
+    }
+
 }
 
 void MainWindow::on_pushButton_clicked() {

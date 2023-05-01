@@ -1,7 +1,10 @@
 #include "robot.h"
 
 #ifdef _WIN32
-    #include <windows.h>
+    #ifndef M_PI
+        #define M_PI 3.14159265358979323846
+    #endif
+    #include <windows.h>    
 #else
     #include <termios.h>
     #include <unistd.h>
