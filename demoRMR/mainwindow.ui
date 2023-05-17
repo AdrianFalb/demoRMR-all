@@ -339,6 +339,29 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="current_robot_label">
+        <property name="text">
+         <string>Selected Robot:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="lineEdit_selected_robot">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>162</width>
+          <height>0</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="verticalSpacer">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -434,7 +457,7 @@
      <x>0</x>
      <y>0</y>
      <width>804</width>
-     <height>25</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

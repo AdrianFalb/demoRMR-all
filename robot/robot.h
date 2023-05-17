@@ -39,56 +39,56 @@ public:
     static std::function<int(TKobukiData,int)> do_nothing_robot;
     static std::function<int(LaserMeasurement,int)> do_nothing_laser;
 
-    void robotStart();
-    void setLaserParameters(std::string ipaddress, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement,int)> callback) {
+    void robot_start();
+    void set_laser_parameters(std::string ipaddress, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement,int)> callback) {
 
         this->laser_ip_portOut = laserportRobot;
         this->laser_ip_portIn = laserportMe;
         this->laser_ipaddress = ipaddress;
         this->laser_callback = callback;
-        this->wasLaserSet = 1;
+        this->was_laser_set = 1;
     }
 
-    void setRobotParameters(std::string ipaddress, int robotportRobot, int robotportMe, std::function<int(TKobukiData,int)> callback) {
+    void set_robot_parameters(std::string ipaddress, int robotportRobot, int robotportMe, std::function<int(TKobukiData,int)> callback) {
 
         this->robot_ip_portOut = robotportRobot;
         this->robot_ip_portIn = robotportMe;
         this->robot_ipaddress = ipaddress;
         this->robot_callback = callback;
-        this->wasRobotSet = 1;
+        this->was_robot_set = 1;
     }
 
     void ramp(double max_speed, int stopping, int rotating);
 
-    void setTranslationSpeed(int mmpersec);
-    void setRotationSpeed(double radpersec);
-    void setArcSpeed(int mmpersec,int radius);
-    void setCameraParameters(std::string link,std::function<int(cv::Mat)> callback) {
+    void set_translation_speed(int mmpersec);
+    void set_rotation_speed(double radpersec);
+    void set_arc_speed(int mmpersec,int radius);
+    void set_camera_parameters(std::string link,std::function<int(cv::Mat)> callback) {
 
         this->camera_link=link;
         this->camera_callback=callback;
-        this->wasCameraSet=1;
+        this->was_camera_set=1;
     }
 
-    void setMyRobotGroupIndex(unsigned short int index) {
+    void set_my_robot_group_index(unsigned short int index) {
 
-        this->myRobotGroupIndex = index;
+        this->my_robot_group_index = index;
     }
 
-    unsigned short int getMyRobotGroupIndex() {
+    unsigned short int get_my_robot_group_index() {
 
-        return this->myRobotGroupIndex;
+        return this->my_robot_group_index;
     }
 
     std::string getIpAddress() {
         return this->robot_ipaddress;
     }
 
-    void set_accept_commands(bool b) {
+    void set_awake_state(bool b) {
         this->accept_commands = b;
     }
 
-    bool get_accept_commands() {
+    bool get_awake_state() {
         return this->accept_commands;
     }
 
@@ -127,20 +127,20 @@ public:
 private:
 
     std::promise<void> ready_promise;
-    std::shared_future<void> readyFuture;
-    int wasLaserSet;
-    int wasRobotSet;
-    int wasCameraSet;
+    std::shared_future<void> ready_future;
+    int was_laser_set;
+    int was_robot_set;
+    int was_camera_set;
     //veci na laser
-    LaserMeasurement copyOfLaserData;
+    LaserMeasurement copy_of_laser_data;
     void laserprocess();
     std::string laser_ipaddress;
     int laser_ip_portOut;
     int laser_ip_portIn;
-    std::thread laserThreadHandle;
+    std::thread laser_thread_handle;
     std::function<int(LaserMeasurement,int)> laser_callback = nullptr;
 
-    unsigned short int myRobotGroupIndex;
+    unsigned short int my_robot_group_index;
     bool accept_commands;
     bool follow_mode;
     double actual_speed;    
@@ -153,7 +153,7 @@ private:
     std::string robot_ipaddress;
     int robot_ip_portOut;
     int robot_ip_portIn;
-    std::thread robotThreadHandle;
+    std::thread robot_thread_handle;
     void robotprocess();
     std::function<int(TKobukiData,int)> robot_callback = nullptr;
 

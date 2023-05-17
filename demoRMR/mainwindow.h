@@ -70,7 +70,7 @@ public:
     int process_this_robot(TKobukiData robotdata,int address);
     int process_this_camera(cv::Mat cameraData);    
     void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
-    void issue_robot_command(std::string robot_id, std::string robot_command);
+    void issue_robot_command(std::string robot_id, std::string robot_command, std::string robot_follow_command);
 
     // Methods for reseting parameters
     void reset_control_parameters(double m);
@@ -84,39 +84,39 @@ public:
     std::thread th2;
     std::thread th3;
 
-    std::vector<int> used_robot_ips;
-
-    bool first_time = true;
+    std::vector<int> used_robot_ips;    
 
     // Robot control
     double meters;
     int angle_delta;
     int old_angle;
     int angle;
+    bool first_gyro_data = true;
+    bool first_time = true;
 
     // Booleans for robot control
     bool meters_reset = false;
     bool rotation_reset = false;
     bool rotation_from_right = false;
-    bool rotation_from_left = false;
+    bool rotation_from_left = false;    
 
     // Booleans for collision detection
     bool collision_detected_front = false;
-    bool collision_detected_back = false;
+    bool collision_detected_back = false;    
     bool evading_collision = false;
+    std::string avoided_collision_with_command = "";
 
     bool process_this_robot_allowed = false;
 
+    // Lidar
     double lidar_dist;
     double shortest_lidar_distance;
     double shortest_lidar_angle;
 
+    // Odometry
     int number_of_callbacks_encoder_data_was_not_changed = 0;
     int m_left_delta;
     int m_left_old;
-
-    bool first_gyro_data = true;    
-
     int m_right;
     int m_right_old;
 
@@ -207,12 +207,14 @@ private:
 public slots:
     void set_ui_values(double robotX,double robotY,double robotFi);
     void set_robot_modes(bool mode, bool power_mode);
+    void set_selected_robot(bool changed);
     void enable_buttons();
 
 signals:
     void ui_values_changed(double newrobotX, double newrobotY, double newrobotFi); ///toto nema telo
     void start_button_pressed(bool pressed);
     void robot_modes_changed(bool mode_changed, bool power_mode_changed);
+    void selected_robot_changed(bool changed);
 
 };
 

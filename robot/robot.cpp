@@ -14,14 +14,17 @@
     #include <sys/socket.h>
 #endif
 
+#define MAX_ROTATION_SPEED_CONTROL_MODE (M_PI/6)
+#define MAX_ROTATION_SPEED_FOLLOW_MODE (M_PI/2)
+
 std::function<int(TKobukiData,int)> Robot::do_nothing_robot = [](TKobukiData data,int){std::cout<<"data z kobuki "<<std::endl; return 0;};
 std::function<int(LaserMeasurement,int)> Robot::do_nothing_laser = [](LaserMeasurement data,int addres){std::cout<<"data z rplidar "<<std::endl; return 0;};
 
 Robot::~Robot() {
 
     ready_promise.set_value();
-    robotThreadHandle.join();
-    laserThreadHandle.join();
+    robot_thread_handle.join();
+    laser_thread_handle.join();
     cameraThreadHandle.join();
 
     #ifdef _WIN32
@@ -29,14 +32,14 @@ Robot::~Robot() {
     #endif
 }
 
-Robot::Robot(std::string ipaddressLaser, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement,int)> &lascallback, std::string ipaddressRobot,int robotportRobot, int robotportMe, std::function<int(TKobukiData,int)> &robcallback): wasLaserSet(0), wasRobotSet(0), wasCameraSet(0) {
+Robot::Robot(std::string ipaddressLaser, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement,int)> &lascallback, std::string ipaddressRobot,int robotportRobot, int robotportMe, std::function<int(TKobukiData,int)> &robcallback): was_laser_set(0), was_robot_set(0), was_camera_set(0) {
 
-    this->setLaserParameters(ipaddressLaser, laserportRobot, laserportMe, lascallback);
-    this->setRobotParameters(ipaddressRobot, robotportRobot, robotportMe, robcallback);
+    this->set_laser_parameters(ipaddressLaser, laserportRobot, laserportMe, lascallback);
+    this->set_robot_parameters(ipaddressRobot, robotportRobot, robotportMe, robcallback);
     this->set_actual_speed(0);
     this->follow_mode = false;
     this->doing_gesture = false;
-    readyFuture = ready_promise.get_future();
+    ready_future = ready_promise.get_future();
 
     std::cout << "Bol som vytvoreny!" << std::endl;
 }
@@ -99,7 +102,7 @@ void Robot::robotprocess() {
 
     while(1) {
 
-        if (readyFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        if (ready_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             break;
         memset(buff,0,50000*sizeof(char));
 
@@ -129,12 +132,13 @@ void Robot::robotprocess() {
 }
 
 void Robot::ramp(double max_speed, int stopping, int rotating) {
-    // Forward, backward and stopping
+    double a = max_speed/20;
+    // ================ Forward, backward and stopping
     if (stopping == 0 && rotating == 0) {
         // Forward ramp
         if (this->get_doing_gesture() && this->get_current_command() == "FORWARD") {
             if (this->actual_speed < max_speed) {
-                this->actual_speed += (max_speed/40);
+                this->actual_speed += (a);
 
             } else if (this->actual_speed >= max_speed) {
                 this->actual_speed = max_speed;
@@ -142,50 +146,57 @@ void Robot::ramp(double max_speed, int stopping, int rotating) {
         // Backward ramp
         } else if (this->get_doing_gesture() && this->get_current_command() == "BACKWARD") {
             if (this->actual_speed > max_speed) {
-                this->actual_speed += (max_speed/40);
-                //std::cout<<"tady"<<std::endl;
+                this->actual_speed += (a);
 
             } else if (this->actual_speed <= max_speed) {
                 this->actual_speed = max_speed;
             }
         }
-
+    // Stopping
     } else if (stopping == 1 && rotating == 0) {
         if (this->actual_speed > 0) {
-            this->actual_speed -= (20);
+            this->actual_speed -= (30);
 
         } else if (this->actual_speed < 0) {
-            this->actual_speed += (20);
+            this->actual_speed += (30);
 
         } else if (this->actual_speed == 0) {
             this->actual_speed = 0;
         }
-    // Left, right and stopping
+    // ============ Left, right and stopping
     } else if (stopping == 0 && rotating == 1) {
         // Forward ramp
-        if (this->get_doing_gesture() && this->get_current_command() == "LEFT") {
+        if (this->get_doing_gesture() && (this->get_current_command() == "LEFT" || this->get_current_command() == "FOLLOW_LEFT")) {
             if (this->actual_speed < max_speed) {
-                this->actual_speed += (max_speed/40);
+                this->actual_speed += (a);
 
             } else if (this->actual_speed >= max_speed) {
                 this->actual_speed = max_speed;
             }
         // Backward ramp
-        } else if (this->get_doing_gesture() && this->get_current_command() == "RIGHT") {
+        } else if (this->get_doing_gesture() && (this->get_current_command() == "RIGHT" || this->get_current_command() == "FOLLOW_RIGHT")) {
             if (this->actual_speed > max_speed) {
-                this->actual_speed += (max_speed/40);
+                this->actual_speed += (a);
 
             } else if (this->actual_speed <= max_speed) {
                 this->actual_speed = max_speed;
             }
         }
-
+    // Stopping
     } else if (stopping == 1 && rotating == 1) {
         if (this->actual_speed > 0) {
-            this->actual_speed -= (M_PI/2);
+            if (this->follow_mode) {
+                this->actual_speed -= (MAX_ROTATION_SPEED_FOLLOW_MODE);
+            } else {
+                this->actual_speed -= (MAX_ROTATION_SPEED_CONTROL_MODE);
+            }
 
         } else if (this->actual_speed < 0) {
-            this->actual_speed += (M_PI/2);
+            if (this->follow_mode) {
+                this->actual_speed += (MAX_ROTATION_SPEED_FOLLOW_MODE);
+            } else {
+                this->actual_speed += (MAX_ROTATION_SPEED_CONTROL_MODE);
+            }
 
         } else if (this->actual_speed == 0) {
             this->actual_speed = 0;
@@ -193,7 +204,7 @@ void Robot::ramp(double max_speed, int stopping, int rotating) {
     }
 }
 
-void Robot::setTranslationSpeed(int mmpersec) {
+void Robot::set_translation_speed(int mmpersec) {
 
     std::vector<unsigned char> mess = robot.setTranslationSpeed(mmpersec);
     if (::sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1) {
@@ -201,7 +212,7 @@ void Robot::setTranslationSpeed(int mmpersec) {
     }
 }
 
-void Robot::setRotationSpeed(double radpersec) {
+void Robot::set_rotation_speed(double radpersec) {
 
     std::vector<unsigned char> mess = robot.setRotationSpeed(radpersec);
     if (::sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1) {
@@ -209,7 +220,7 @@ void Robot::setRotationSpeed(double radpersec) {
     }
 }
 
-void Robot::setArcSpeed(int mmpersec,int radius) {
+void Robot::set_arc_speed(int mmpersec,int radius) {
 
     std::vector<unsigned char> mess = robot.setArcSpeed(mmpersec, radius);
     if (::sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1) {
@@ -262,7 +273,7 @@ void Robot::laserprocess() {
     LaserMeasurement measure;
     while(1) {
 
-        if (readyFuture.wait_for(std::chrono::seconds(0))==std::future_status::ready)
+        if (ready_future.wait_for(std::chrono::seconds(0))==std::future_status::ready)
             break;
         if ((las_recv_len = ::recvfrom(las_s, (char *)&measure.Data, sizeof(LaserData)*1000, 0, (struct sockaddr *) &las_si_other, &las_slen)) == -1) {
 
@@ -280,19 +291,19 @@ void Robot::laserprocess() {
     std::cout<<"koniec thread"<<std::endl;
 }
 
-void Robot::robotStart() {
+void Robot::robot_start() {
 
-    if (wasRobotSet == 1) {
+    if (was_robot_set == 1) {
         std::function<void(void)> f = std::bind(&Robot::robotprocess, this);
-        this->robotThreadHandle = std::move(std::thread(f));
+        this->robot_thread_handle = std::move(std::thread(f));
     }
 
-    if (wasLaserSet == 1) {
+    if (was_laser_set == 1) {
         std::function<void(void)> f2 = std::bind(&Robot::laserprocess, this);
-        this->laserThreadHandle = std::move(std::thread(f2));
+        this->laser_thread_handle = std::move(std::thread(f2));
     }
 
-    if (wasCameraSet == 1) {
+    if (was_camera_set == 1) {
         std::function<void(void)> f3 = std::bind(&Robot::imageViewer, this);
        this-> cameraThreadHandle = std::move(std::thread(f3));
     }
@@ -306,7 +317,7 @@ void Robot::imageViewer() {
 
     while(1) {
 
-        if(readyFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        if(ready_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             break;
         cap >> frameBuf;
 
