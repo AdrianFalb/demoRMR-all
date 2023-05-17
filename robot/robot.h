@@ -117,11 +117,16 @@ public:
     }
 
     void set_current_command(std::string command) {
+        this->previous_command = this->current_command;
         this->current_command = command;
     }
 
     std::string get_current_command() {
         return this->current_command;
+    }
+
+    std::string get_previous_command() {
+        return this->previous_command;
     }
 
 private:
@@ -146,6 +151,7 @@ private:
     double actual_speed;    
     bool doing_gesture;
     std::string current_command = "";
+    std::string previous_command = "";
 
     //veci pre podvozok
     CKobuki robot;

@@ -104,6 +104,8 @@ public:
     bool collision_detected_front = false;
     bool collision_detected_back = false;    
     bool evading_collision = false;
+    bool collision_rotate_left = false;
+    bool collision_rotate_right = false;
     std::string avoided_collision_with_command = "";
 
     bool process_this_robot_allowed = false;

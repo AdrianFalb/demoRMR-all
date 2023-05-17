@@ -331,6 +331,19 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
                         if (shortest_lidar_distance <= COLLISION_DETECTION_RANGE) {
                             std::cout << "INFO: Collision Detected at the front at an angle: " << shortest_lidar_angle << " Stopping" << std::endl;
 
+                            if (robot_group.at(index_of_current_robot)->get_previous_command() == "RIGHT") {
+                                collision_rotate_right = false;
+                                collision_rotate_left = true;
+
+                            } else if (robot_group.at(index_of_current_robot)->get_previous_command() == "LEFT") {
+                                collision_rotate_right = true;
+                                collision_rotate_left = false;
+
+                            } else {
+                                collision_rotate_right = false;
+                                collision_rotate_left = false;
+                            }
+
                             // STOP COMMAND
                             this->reset_control_parameters(0.7);
                             this->reset_booleans_stop_command();
@@ -354,10 +367,7 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
                     }
                 }
             }
-        }
-
-        //std::cout << "Collision avoided by BEFORE: " << avoided_collision_with_command << std::endl;
-        //std::cout << "Robot comand: " << robot_group.at(index_of_current_robot)->get_current_command() << std::endl;
+        }       
 
         // Unblocks the robot when the actual command is different to the command that caused the collision
         // This kills the bug which made the robot move back and forth if it detected a collision
@@ -371,26 +381,50 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
                    (robot_group.at(index_of_current_robot)->get_current_command() == "BACKWARD" && avoided_collision_with_command == "BACKWARD") ||
                    (robot_group.at(index_of_current_robot)->get_current_command() == "RIGHT" || robot_group.at(index_of_current_robot)->get_current_command() == "LEFT" || robot_group.at(index_of_current_robot)->get_current_command() == "FOLLOW_LEFT" || robot_group.at(index_of_current_robot)->get_current_command() == "FOLLOW_RIGHT")) {
             avoided_collision_with_command.clear();
-        }
-
-        //std::cout << "Collision avoided by AFTER: " << avoided_collision_with_command << std::endl;
+        }        
 
         // ============================================================================================== FINISH TRANSLATION MOVEMENT
         if (meters >= 1 && !rotation_from_left && !rotation_from_right) { // Stopping when command is FORWARD or BACKWARD
-
             if (evading_collision) {
                 avoided_collision_with_command = robot_group.at(this->index_of_current_robot)->get_current_command();
             }
 
+            std::cout << "Collision left: " << collision_rotate_left << std::endl;
+            std::cout << "Collision right: " << collision_rotate_right << std::endl;
+
             this->reset_collision_params();
-            robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);            
 
             // STOP
-            this->reset_control_parameters(0);
-            this->reset_booleans_stop_command();
-            robot_group.at(this->index_of_current_robot)->set_current_command("STOP");            
+            // Happens during normal operation
+            if (!collision_rotate_left && !collision_rotate_right) {
+                robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+                this->reset_control_parameters(0);
+                this->reset_booleans_stop_command();
+                robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
 
-        } else if (meters >= 1 && (rotation_from_left || rotation_from_right)) { // FORWARD movement after rotation
+            // Happens when the robot detects a collision while performing RIGHT or LEFT command
+            } else {
+                robot_group.at(this->index_of_current_robot)->ramp(0, 1, 0);
+                robot_group.at(this->index_of_current_robot)->set_arc_speed(robot_group.at(this->index_of_current_robot)->get_actual_speed(), 0);
+
+                // if first rotation was right I go left
+                if (!rotation_reset && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && collision_rotate_right) {
+                    this->reset_control_parameters(0);
+                    rotation_reset = true;
+                    first_gyro_data = true;
+                    robot_group.at(this->index_of_current_robot)->set_current_command("RIGHT");
+
+                // if first rotation was left I go right
+                } else if (!rotation_reset && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && collision_rotate_left) {
+                    this->reset_control_parameters(0);
+                    rotation_reset = true;
+                    first_gyro_data = true;
+                    robot_group.at(this->index_of_current_robot)->set_current_command("LEFT");
+                }
+            }
+
+        } else if (meters >= 1 && (rotation_from_left || rotation_from_right)) { // Stops FORWARD movement after first rotation
+
             if (evading_collision) {
                 avoided_collision_with_command = robot_group.at(this->index_of_current_robot)->get_current_command();
             }
@@ -404,18 +438,18 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
                 this->reset_control_parameters(0);
                 rotation_reset = true;
                 first_gyro_data = true;
-                robot_group.at(this->index_of_current_robot)->set_current_command("LEFT");
+                robot_group.at(this->index_of_current_robot)->set_current_command("LEFT");                
 
             // if first rotation was left I go right
             } else if (!rotation_reset && meters_reset && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && rotation_from_left) {
                 this->reset_control_parameters(0);                
                 rotation_reset = true;
                 first_gyro_data = true;
-                robot_group.at(this->index_of_current_robot)->set_current_command("RIGHT");
+                robot_group.at(this->index_of_current_robot)->set_current_command("RIGHT");                
             }
 
         } else if (meters != 0 && robot_group.at(this->index_of_current_robot)->get_actual_speed() == 0 && !robot_group.at(this->index_of_current_robot)->get_follow_mode()) { // Toto sa stane ked sa vykona LEFT alebo RIGHT
-            robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);            
+            robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
             this->reset_booleans_stop_command();
             robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
         }
@@ -449,7 +483,7 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
 
         // ============================================================================================== FINISH ROTATION MOVEMENT
         if (robot_group.at(index_of_current_robot)->get_follow_mode() == false) { // Control Mode
-            if (angle >= 120 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == true && rotation_reset) { // Stops the second rotation
+            if (angle >= 120 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == true && rotation_reset && (!collision_rotate_left && !collision_rotate_right)) { // Stops the second rotation during RIGHT or LEFT command
 
                 // Po tom ako robot zrotuje naspat sa prestane vykonavat prikaz
                 if (rotation_reset && (rotation_from_right || rotation_from_left)) {
@@ -459,7 +493,19 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
                 robot_group.at(this->index_of_current_robot)->ramp(0, 1, 1);
                 robot_group.at(this->index_of_current_robot)->set_rotation_speed(robot_group.at(this->index_of_current_robot)->get_actual_speed());
 
-            } else if (angle >= 90 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == true && !rotation_reset) { // Stops the first rotation
+            } else if (angle >= 90 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == true && (collision_rotate_left || collision_rotate_right)) { // Stops the rotation after a collision
+
+                robot_group.at(this->index_of_current_robot)->set_doing_gesture(false);
+                robot_group.at(this->index_of_current_robot)->ramp(0, 1, 1);
+                robot_group.at(this->index_of_current_robot)->set_rotation_speed(robot_group.at(this->index_of_current_robot)->get_actual_speed());
+
+                if (robot_group.at(index_of_current_robot)->get_actual_speed() == 0) {
+                    collision_rotate_right = false;
+                    collision_rotate_left = false;
+                    this->reset_booleans_stop_command();
+                }
+
+            } else if (angle >= 90 && robot_group.at(this->index_of_current_robot)->get_doing_gesture() == true && !rotation_reset) { // Stops the first rotation durign RIGHT or LEFT command
 
                 robot_group.at(this->index_of_current_robot)->ramp(0, 1, 1);
                 robot_group.at(this->index_of_current_robot)->set_rotation_speed(robot_group.at(this->index_of_current_robot)->get_actual_speed());
@@ -615,12 +661,14 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
         }        
     }
 
-    /*if (this->data_counter % 5) {
+    /*
+    if (this->data_counter % 5) {
 
         emit ui_values_changed(this->robot_data.EncoderLeft, 11, 12);
     }
 
-    this->data_counter++;*/
+    this->data_counter++;
+    */
 
     return 0;
 }
@@ -801,9 +849,11 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
     }
 
     if (robot_command == "STOP") {
-        this->reset_control_parameters(0);
-        this->reset_booleans_stop_command();
-        robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+        if (!evading_collision) {
+            this->reset_control_parameters(0);
+            this->reset_booleans_stop_command();
+            robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+        }
     }
 
     if (robot_group.at(this->index_of_current_robot)->get_awake_state() == true) {
@@ -1112,9 +1162,11 @@ void MainWindow::on_pushButton_right_clicked() { // right
 
 void MainWindow::on_pushButton_stop_clicked() { // stop
 
-    this->reset_control_parameters(0);
-    this->reset_booleans_stop_command();
-    robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+    if (!evading_collision) {
+        this->reset_control_parameters(0);
+        this->reset_booleans_stop_command();
+        robot_group.at(this->index_of_current_robot)->set_current_command("STOP");
+    }
 }
 
 void MainWindow::on_pushButton_follow_mode_clicked() {
