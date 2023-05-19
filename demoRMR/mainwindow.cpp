@@ -824,7 +824,7 @@ void MainWindow::issueRobotCommand(std::string robotIpAddress, std::string robot
         return;
     }
 
-    for (size_t i = 0; i < robotGroup.size(); i++) {
+    for (unsigned short int i = 0; i < robotGroup.size(); i++) {
 
        if (robotIpAddress == robotGroup[i]->getIpAddress()) {
            indexOfCurrentRobot = robotGroup[i]->getRobotGroupIndex();
@@ -832,6 +832,14 @@ void MainWindow::issueRobotCommand(std::string robotIpAddress, std::string robot
 
            if (robotCommand == "WAKE_UP") {
                robotGroup.at(indexOfCurrentRobot)->setAwakeState(true);
+
+               // Ensures that only one robot will be in awakened state concurrently
+               for (size_t j = 0; j < robotGroup.size(); j++) {
+                   if (robotGroup.at(j) != robotGroup.at(indexOfCurrentRobot)) {
+                       robotGroup.at(j)->setAwakeState(false);
+                   }
+               }
+
                emit selectedRobotChanged(true);
            }
            break;
