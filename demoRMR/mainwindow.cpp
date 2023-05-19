@@ -387,10 +387,7 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
         if (meters >= 1 && !rotation_from_left && !rotation_from_right) { // Stopping when command is FORWARD or BACKWARD
             if (evading_collision) {
                 avoided_collision_with_command = robot_group.at(this->index_of_current_robot)->get_current_command();
-            }
-
-            std::cout << "Collision left: " << collision_rotate_left << std::endl;
-            std::cout << "Collision right: " << collision_rotate_right << std::endl;
+            }            
 
             this->reset_collision_params();
 
@@ -643,6 +640,10 @@ int MainWindow::process_this_robot(TKobukiData robotdata, int address) {
 
             old_angle = robotdata.GyroAngle/100;
             angle += angle_delta;
+
+        } else if (robot_group.at(this->index_of_current_robot)->get_doing_gesture() == false && robot_group.at(this->index_of_current_robot)->get_current_command() == "FOLLOW_RIGHT") {
+            robot_group.at(this->index_of_current_robot)->ramp(0, 1, 1);
+            robot_group.at(this->index_of_current_robot)->set_rotation_speed(robot_group.at(this->index_of_current_robot)->get_actual_speed());
         }
 
         // COUNTING NUMBER OF CALLBACKS THE ROBOT HAS NOT BEEN MOVING
@@ -890,12 +891,12 @@ void MainWindow::issue_robot_command(std::string robot_ip_address, std::string r
                 } else if (robot_follow_command == "FOLLOW_LEFT") {
                     this->reset_control_parameters(0);
                     robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
-                    robot_group.at(this->index_of_current_robot)->set_current_command(robot_follow_command);
+                    robot_group.at(this->index_of_current_robot)->set_current_command("FOLLOW_LEFT");
 
                 } else if (robot_follow_command == "FOLLOW_RIGHT") {
                     this->reset_control_parameters(0);
                     robot_group.at(this->index_of_current_robot)->set_doing_gesture(true);
-                    robot_group.at(this->index_of_current_robot)->set_current_command(robot_follow_command);
+                    robot_group.at(this->index_of_current_robot)->set_current_command("FOLLOW_RIGHT");
 
                 } else if (robot_follow_command == "FOLLOW_BACKWARD_LEFT") {
                     this->reset_control_parameters(0);
