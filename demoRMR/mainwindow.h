@@ -59,75 +59,73 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    bool use_camera1;
-    int act_index;
+    bool useCamera1;
+    int actIndex;
 
     cv::Mat frame[3];
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    int process_this_lidar(LaserMeasurement laserData, int address);
-    int process_this_robot(TKobukiData robotdata,int address);
-    int process_this_camera(cv::Mat cameraData);    
-    void process_this_message(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
-    void issue_robot_command(std::string robot_id, std::string robot_command, std::string robot_follow_command);
+    int processThisLidar(LaserMeasurement laserData, int address);
+    int processThisRobot(TKobukiData robotdata,int address);
+    int processThisCamera(cv::Mat cameraData);
+    void processThisMessage(sockaddr_in ske_si_me, sockaddr_in ske_si_other, sockaddr_in ske_si_posli, int ske_s, int ske_recv_len, int port);
+    void issueRobotCommand(std::string robotId, std::string robotCommand, std::string robotFollowCommand);
 
     // Methods for reseting parameters
-    void reset_control_parameters(double m);
-    void reset_booleans_stop_command();
-    void reset_collision_params();
+    void resetControlParameters(double m);
+    void resetBooleansStopCommand();
+    void resetCollisionParams();
 
-    IpReturnMessage check_ip_address(std::string ip);
+    IpReturnMessage checkIpAddress(std::string ip);
 
-    std::thread robot_message_thread;
+    std::thread robotMessageThread;
     std::thread th1;
     std::thread th2;
     std::thread th3;
 
-    std::vector<int> used_robot_ips;    
+    std::vector<int> usedRobotIps;
 
     // Robot control
     double meters;
-    int angle_delta;
-    int old_angle;
+    int angleDelta;
+    int oldAngle;
     int angle;
-    bool first_gyro_data = true;
-    bool first_time = true;
+    bool firstGyroData = true;
+    bool firstTime = true;
 
     // Booleans for robot control
-    bool meters_reset = false;
-    bool rotation_reset = false;
-    bool rotation_from_right = false;
-    bool rotation_from_left = false;    
+    bool metersReset = false;
+    bool rotationReset = false;
+    bool rotationFromRight = false;
+    bool rotationFromLeft = false;
 
     // Booleans for collision detection
-    bool collision_detected_front = false;
-    bool collision_detected_back = false;    
-    bool evading_collision = false;
-    bool collision_rotate_left = false;
-    bool collision_rotate_right = false;
-    std::string avoided_collision_with_command = "";
+    bool collisionDetectedFront = false;
+    bool collisionDetectedBack = false;
+    bool evadingCollision = false;
+    bool collisionRotateLeft = false;
+    bool collisionRotateRight = false;
+    std::string avoidedCollisionWithCommand = "";
 
-    bool process_this_robot_allowed = false;
+    bool processThisRobotAllowed = false;
 
     // Lidar
-    double lidar_dist;
-    double shortest_lidar_distance;
-    double shortest_lidar_angle;
+    double lidarDist;
+    double shortestLidarDistance;
+    double shortestLidarAngle;
 
     // Odometry
-    int number_of_callbacks_encoder_data_was_not_changed = 0;
-    int m_left_delta;
-    int m_left_old;
-    int m_right;
-    int m_right_old;
+    int numberOfCallbacksEncoderDataWasNotChanged = 0;
+    int mLeftDelta;
+    int mLeftOld;
+    int mRight;
+    int mRightOld;
 
-    bool switch_button_was_enabled;
+    bool switchButtonWasEnabled;
 
-    int stopall;
+    int stopAll;
     //int update_skeleton_picture;
-
-    bool robot_not_moving; // daj si flag, ktory sa nastavi na true ked sa robot pohne a resetne sa iba ked je false
 
     struct sockaddr_in las_si_me, las_si_other,las_si_posli; // veci na broadcast laser
     int las_s,  las_recv_len;
@@ -170,53 +168,53 @@ private slots:
 
 private:
 
-    void add_new_robot_to_group(unsigned short int robot_index, unsigned short int number_of_robots);
-    void set_index_of_current_robot(unsigned short int robot_index);
-    void set_ip_address(std::string ip_address);
-    void disable_buttons();
+    void addNewRobotToGroup(unsigned short int robotIndex, unsigned short int numberOfRobots);
+    void setIndexOfCurrentRobot(unsigned short int robotIndex);
+    void setIpAddress(std::string ipAddress);
+    void disableButtons();
 
     //JOYINFO joystick_info;
     Ui::MainWindow *ui;
     void paintEvent(QPaintEvent *event); // Q_DECL_OVERRIDE;
-    int update_laser_picture;
+    int updateLaserPicture;
 
-    LaserMeasurement copy_of_laser_data1;
-    LaserMeasurement copy_of_laser_data2;
-    LaserMeasurement copy_of_laser_data3;
+    LaserMeasurement copyOfLaserData1;
+    LaserMeasurement copyOfLaserData2;
+    LaserMeasurement copyOfLaserData3;
 
-    std::string http_string;
-    std::string port_string;
-    std::string file_string;
-    std::string ip_address;
-    std::string camera_address;
+    std::string httpString;
+    std::string portString;
+    std::string fileString;
+    std::string ipAddress;
+    std::string cameraAddress;
 
     unsigned int laserParametersLaserPortOut;
     unsigned int laserParametersLaserPortIn;
     unsigned int robotParametersLaserPortOut;
     unsigned int robotParametersLaserPortIn;
 
-    std::map<unsigned short int, Robot*> robot_group;
-    unsigned short int index_of_current_robot;
+    std::map<unsigned short int, Robot*> robotGroup;
+    unsigned short int indexOfCurrentRobot;
     TKobukiData robot_data;
     int data_counter;
     QTimer *timer;
 
     QJoysticks *instance;
 
-    double forward_speed; // mm/s
-    double rotation_speed; // omega/s    
+    double forwardSpeed; // mm/s
+    double rotationSpeed; // omega/s
 
 public slots:
-    void set_ui_values(double robotX,double robotY,double robotFi);
-    void set_robot_modes(bool mode, bool power_mode);
-    void set_selected_robot(bool changed);
-    void enable_buttons();
+    void setUiValues(double robotX,double robotY,double robotFi);
+    void setRobotModes(bool state, bool mode);
+    void setSelectedRobot(bool changed);
+    void enableButtons();
 
 signals:
-    void ui_values_changed(double newrobotX, double newrobotY, double newrobotFi); ///toto nema telo
-    void start_button_pressed(bool pressed);
-    void robot_modes_changed(bool mode_changed, bool power_mode_changed);
-    void selected_robot_changed(bool changed);
+    void uiValuesChanged(double newrobotX, double newrobotY, double newrobotFi); ///toto nema telo
+    void startButtonPressed(bool pressed);
+    void robotModesChanged(bool stateChanged, bool modeChanged);
+    void selectedRobotChanged(bool changed);
 
 };
 

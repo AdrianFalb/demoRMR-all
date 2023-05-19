@@ -39,105 +39,106 @@ public:
     static std::function<int(TKobukiData,int)> do_nothing_robot;
     static std::function<int(LaserMeasurement,int)> do_nothing_laser;
 
-    void robot_start();
-    void set_laser_parameters(std::string ipaddress, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement,int)> callback) {
+    void robotStart();
+    void setLaserParameters(std::string ipaddress, int laserportRobot, int laserportMe, std::function<int(LaserMeasurement,int)> callback) {
 
         this->laser_ip_portOut = laserportRobot;
         this->laser_ip_portIn = laserportMe;
         this->laser_ipaddress = ipaddress;
         this->laser_callback = callback;
-        this->was_laser_set = 1;
+        this->wasLaserSet = 1;
     }
 
-    void set_robot_parameters(std::string ipaddress, int robotportRobot, int robotportMe, std::function<int(TKobukiData,int)> callback) {
+    void setRobotParameters(std::string ipaddress, int robotportRobot, int robotportMe, std::function<int(TKobukiData,int)> callback) {
 
         this->robot_ip_portOut = robotportRobot;
         this->robot_ip_portIn = robotportMe;
         this->robot_ipaddress = ipaddress;
         this->robot_callback = callback;
-        this->was_robot_set = 1;
+        this->wasRobotSet = 1;
     }
 
     void ramp(double max_speed, int stopping, int rotating);
 
-    void set_translation_speed(int mmpersec);
-    void set_rotation_speed(double radpersec);
-    void set_arc_speed(int mmpersec,int radius);
-    void set_camera_parameters(std::string link,std::function<int(cv::Mat)> callback) {
+    void setTranslationSpeed(int mmpersec);
+    void setRotationSpeed(double radpersec);
+    void setArcSpeed(int mmpersec,int radius);
+    void setCameraParameters(std::string link,std::function<int(cv::Mat)> callback) {
 
         this->camera_link=link;
         this->camera_callback=callback;
-        this->was_camera_set=1;
+        this->wasCameraSet=1;
     }
 
-    void set_my_robot_group_index(unsigned short int index) {
+    void setRobotGroupIndex(unsigned short int index) {
 
-        this->my_robot_group_index = index;
+        this->robotGroupIndex = index;
     }
 
-    unsigned short int get_my_robot_group_index() {
+    unsigned short int getRobotGroupIndex() {
 
-        return this->my_robot_group_index;
+        return this->robotGroupIndex;
     }
 
     std::string getIpAddress() {
         return this->robot_ipaddress;
     }
 
-    void set_awake_state(bool b) {
-        this->accept_commands = b;
+    void setAwakeState(bool b) {
+        this->acceptCommands = b;
     }
 
-    bool get_awake_state() {
-        return this->accept_commands;
+    bool getAwakeState() {
+        return this->acceptCommands;
     }
 
-    void set_actual_speed(double speed) {
-        this->actual_speed = speed;
+    void setActualSpeed(double speed) {
+        this->actualSpeed = speed;
     }
 
-    double get_actual_speed() {
-        return this->actual_speed;
+    double getActualSpeed() {
+        return this->actualSpeed;
     }
 
-    void set_follow_mode(bool b) {
-        this->follow_mode = b;
+    void setFollowMode(bool b) {
+        this->followMode = b;
     }
 
-    bool get_follow_mode() {
-        return this->follow_mode;
+    bool getFollowMode() {
+        return this->followMode;
     }
 
-    void set_doing_gesture(bool b) {
-        this->doing_gesture = b;
+    void setDoingGesture(bool b) {
+        this->doingGesture = b;
     }
 
-    bool get_doing_gesture() {
-        return this->doing_gesture;
+    bool getDoingGesture() {
+        return this->doingGesture;
     }
 
-    void set_current_command(std::string command) {
-        this->previous_command = this->current_command;
-        this->current_command = command;
+    void setCurrentCommand(std::string command) {
+        this->previousCommand = this->currentCommand;
+        this->currentCommand = command;
     }
 
-    std::string get_current_command() {
-        return this->current_command;
+    std::string getCurrentCommand() {
+        return this->currentCommand;
     }
 
-    std::string get_previous_command() {
-        return this->previous_command;
+    std::string getPreviousCommand() {
+        return this->previousCommand;
     }
 
 private:
 
-    std::promise<void> ready_promise;
-    std::shared_future<void> ready_future;
-    int was_laser_set;
-    int was_robot_set;
-    int was_camera_set;
-    //veci na laser
-    LaserMeasurement copy_of_laser_data;
+    std::promise<void> readyPromise;
+    std::shared_future<void> readyFuture;
+    int wasLaserSet;
+    int wasRobotSet;
+    int wasCameraSet;
+
+    // Veci na laser
+    LaserMeasurement copyOfLaserData;
     void laserprocess();
     std::string laser_ipaddress;
     int laser_ip_portOut;
@@ -145,15 +146,16 @@ private:
     std::thread laser_thread_handle;
     std::function<int(LaserMeasurement,int)> laser_callback = nullptr;
 
-    unsigned short int my_robot_group_index;
-    bool accept_commands;
-    bool follow_mode;
-    double actual_speed;    
-    bool doing_gesture;
-    std::string current_command = "";
-    std::string previous_command = "";
+    // Ovladanie robota
+    unsigned short int robotGroupIndex;
+    bool acceptCommands;
+    bool followMode;
+    double actualSpeed;
+    bool doingGesture;
+    std::string currentCommand = "";
+    std::string previousCommand = "";
 
-    //veci pre podvozok
+    // Veci pre podvozok
     CKobuki robot;
     TKobukiData sens;
     std::string robot_ipaddress;
@@ -163,22 +165,17 @@ private:
     void robotprocess();
     std::function<int(TKobukiData,int)> robot_callback = nullptr;
 
-    //veci pre kameru -- pozor na kameru, neotvarat ak nahodou chcete kameru pripojit na detekciu kostry...
-
+    // Veci pre kameru -- pozor na kameru, neotvarat ak nahodou chcete kameru pripojit na detekciu kostry...
     std::string camera_link;
     std::thread cameraThreadHandle;
     std::function<int(cv::Mat)> camera_callback = nullptr;
     void imageViewer();
 
-    ///
     struct sockaddr_in las_si_me, las_si_other,las_si_posli;
-
-    int las_s,  las_recv_len;
-
+    int las_s, las_recv_len;
 
     struct sockaddr_in ske_si_me, ske_si_other,ske_si_posli;
-
-    int ske_s,  ske_recv_len;
+    int ske_s, ske_recv_len;
 
     //veci na broadcast robot
     struct sockaddr_in rob_si_me, rob_si_other,rob_si_posli;

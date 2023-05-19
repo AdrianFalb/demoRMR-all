@@ -3,7 +3,7 @@
 
 #include <regex>
 
-static bool validate_ip(const std::string ip) {
+static bool validateIp(const std::string ip) {
 
     std::regex ipPattern(R"(^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$)");
     std::smatch matches;
