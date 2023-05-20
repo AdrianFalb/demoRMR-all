@@ -252,35 +252,37 @@ void MainWindow::setIpAddress(std::string ipAddress) {
     ui->lineEdit->clear();
 }
 
+//#include <chrono>
 int MainWindow::processThisRobot(TKobukiData robotdata, int address) {
 
+    // auto start = std::chrono::steady_clock::now();
     IP ipcka;
     ipcka.ip = address;
     // std::cout << "doslo odtialto robot callback" << (int)ipcka.ip2.a << std::endl;
 
-    LaserMeasurement copyOfLaserData = copyOfLaserData1;
+    LaserMeasurement copyOfLaserData;//= copyOfLaserData1;
 
     if (robotGroup.empty() == false && usedRobotIps.empty() == false) {
 
         if (robotGroup.at(indexOfCurrentRobot)->getIpAddress().empty() == false) {
 #ifndef SIMULATOR
-            char a = robotGroup.at(indexOfCurrentRobot)->getIpAddress().string::at(10);
-            char b = robotGroup.at(indexOfCurrentRobot)->getIpAddress().string::at(11);
-            std::string ip (1, a);
-            ip = ip + b;
+            int a = robotGroup.at(indexOfCurrentRobot)->getIpAddress().string::at(10)-'0';
+            int b = robotGroup.at(indexOfCurrentRobot)->getIpAddress().string::at(11)-'0';
+            int ip = a*10 + b;
 #endif
 #ifdef SIMULATOR
             std::string ip = "1";
-#endif            
-            if (std::stoi(ip) == usedRobotIps.at(0)) {
-                copyOfLaserData = copyOfLaserData1;
-            } else if (std::stoi(ip) == usedRobotIps.at(1)) {
-                copyOfLaserData = copyOfLaserData2;
-            } else if (std::stoi(ip) == usedRobotIps.at(2)) {
-                copyOfLaserData = copyOfLaserData3;
+#endif
+
+            if (ip == usedRobotIps.at(0)) {
+                memcpy(&copyOfLaserData, &copyOfLaserData1, sizeof(LaserMeasurement));
+            } else if (ip == usedRobotIps.at(1)) {
+                memcpy(&copyOfLaserData, &copyOfLaserData2, sizeof(LaserMeasurement));
+            } else if (ip == usedRobotIps.at(2)) {
+                memcpy(&copyOfLaserData, &copyOfLaserData3, sizeof(LaserMeasurement));
             }
 
-            if (std::stoi(ip) == (int)ipcka.ip2.a) {
+            if (ip == (int)ipcka.ip2.a) {
                 processThisRobotAllowed = true;
 
             } else {
@@ -288,6 +290,9 @@ int MainWindow::processThisRobot(TKobukiData robotdata, int address) {
             }
         }
     }
+
+    //auto stop = std::chrono::steady_clock::now();
+    //std::cout<<"checkovanie odkial callback "<< std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count()<<" "<<(int)ipcka.ip2.a<<std::endl;
 
     if (processThisRobotAllowed) {
 
@@ -660,6 +665,8 @@ int MainWindow::processThisRobot(TKobukiData robotdata, int address) {
         }        
     }
 
+    //auto stop2 = std::chrono::steady_clock::now();
+    //std::cout<<"ratanie prikazu "<< std::chrono::duration_cast<std::chrono::nanoseconds>(stop2-stop).count()<<" "<<(int)ipcka.ip2.a<<std::endl;
     /*
     if (this->data_counter % 5) {
 
