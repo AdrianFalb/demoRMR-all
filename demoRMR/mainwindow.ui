@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>804</width>
-    <height>651</height>
+    <height>712</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -289,7 +289,7 @@
       <item>
        <widget class="QLabel" name="mode_label">
         <property name="text">
-         <string>Mode:</string>
+         <string>State:</string>
         </property>
        </widget>
       </item>
@@ -315,7 +315,7 @@
       <item>
        <widget class="QLabel" name="power_mode_label">
         <property name="text">
-         <string>Power Mode:</string>
+         <string>Mode:</string>
         </property>
        </widget>
       </item>
@@ -457,7 +457,7 @@
      <x>0</x>
      <y>0</y>
      <width>804</width>
-     <height>22</height>
+     <height>25</height>
     </rect>
    </property>
   </widget>
