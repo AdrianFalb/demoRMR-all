@@ -17,4 +17,4 @@ The aim of this bachelor thesis is to explore the current state of the problem o
 
 
 This program of the designed human-machine interface is responsible for controlling the group of mobile robots.
-The program responsible for gesture recognition can be found here: https://github.com/AdrianFalb/SkeletonTracker
+The program responsible for gesture recognition can be found here: https://github.com/AdrianFalb/skeleton-tracker
