@@ -1,11 +1,10 @@
-# Design of Natural Human Interaction with a Group of Remote Robots
+# Design of Native Human Interaction with a Group of Remote Robots
 
 Slovak University of Technology in Bratislava/
 Institute of Robotics and Cybernetics Faculty of Electrical Engineering and Informatics/
 2022/2023/
 
 ## BACHELOR THESIS ASSIGNMENT
-Thesis Title: Design of Natural Human Interaction with a Group of Remote Robots
 Language of the Thesis: Slovak language
 
 ## Assignment Specification:
