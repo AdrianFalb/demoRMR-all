@@ -6,7 +6,7 @@ Institute of Robotics and Cybernetics, Faculty of Electrical Engineering and Inf
 
 2022/2023
 
-## BACHELOR THESIS ASSIGNMENT
+## Bachelor thesis assignment
 Language of the Thesis: Slovak language
 
 ## Assignment Specification:
@@ -16,4 +16,4 @@ Therefore, interaction with these robots needs to transition from expert systems
 The aim of this bachelor thesis is to explore the current state of the problem of controlling a group of remote robots and propose a natural interaction approach with this group of robots.
 
 
-This is the code of the desgined human-machine interface responsible for controlling the a group of mobile robots with a maximum size of 3.
+This is the code of the designed human-machine interface responsible for controlling the a group of mobile robots with a maximum size of 3.
