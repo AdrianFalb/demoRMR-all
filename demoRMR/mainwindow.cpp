@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow) {   
 
-    // tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
+    // Tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
     this->httpString = "http://";
     this->fileString = "/stream.mjpg";
 
@@ -121,7 +121,7 @@ void MainWindow::paintEvent(QPaintEvent *event) {
 #ifdef SIMULATOR
             std::string ip = "1";
 #endif
-            // std::cout << "IP of currently selected robot: " << ip << std::endl;
+
 
             if (std::stoi(ip) == usedRobotIps.at(0)) {
                 copyOfLaserData = copyOfLaserData1;
@@ -146,15 +146,7 @@ void MainWindow::paintEvent(QPaintEvent *event) {
             this->updateLaserPicture = 0;
             painter.setPen(pero);
 
-            // teraz tu kreslime random udaje... vykreslite to co treba... t.j. data z lidaru
-            // std::cout<<copyOfLaserData.numberOfScans<<std::endl;
-
-            for (int k = 0; k < copyOfLaserData.numberOfScans/*360*/; k++) {
-
-                /*  int dist=rand()%500;
-                int xp=rect.width()-(rect.width()/2+dist*2*sin((360.0-k)*3.14159/180.0))+rect.topLeft().x();
-                int yp=rect.height()-(rect.height()/2+dist*2*cos((360.0-k)*3.14159/180.0))+rect.topLeft().y();
-                */
+            for (int k = 0; k < copyOfLaserData.numberOfScans; k++) {
 
                 int dist = copyOfLaserData.Data[k].scanDistance / 20;
                 int xp = rect.width() - (rect.width()/2 + dist*2*sin((360.0-copyOfLaserData.Data[k].scanAngle)*3.14159/180.0)) + rect.topLeft().x();
@@ -252,15 +244,12 @@ void MainWindow::setIpAddress(std::string ipAddress) {
     ui->lineEdit->clear();
 }
 
-//#include <chrono>
 int MainWindow::processThisRobot(TKobukiData robotdata, int address) {
 
-    // auto start = std::chrono::steady_clock::now();
     IP ipcka;
-    ipcka.ip = address;
-    // std::cout << "doslo odtialto robot callback" << (int)ipcka.ip2.a << std::endl;
+    ipcka.ip = address;    
 
-    LaserMeasurement copyOfLaserData;//= copyOfLaserData1;
+    LaserMeasurement copyOfLaserData;
 
     if (robotGroup.empty() == false && usedRobotIps.empty() == false) {
 
@@ -291,8 +280,6 @@ int MainWindow::processThisRobot(TKobukiData robotdata, int address) {
         }
     }
 
-    //auto stop = std::chrono::steady_clock::now();
-    //std::cout<<"checkovanie odkial callback "<< std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count()<<" "<<(int)ipcka.ip2.a<<std::endl;
 
     if (processThisRobotAllowed) {
 
@@ -665,25 +652,13 @@ int MainWindow::processThisRobot(TKobukiData robotdata, int address) {
         }        
     }
 
-    //auto stop2 = std::chrono::steady_clock::now();
-    //std::cout<<"ratanie prikazu "<< std::chrono::duration_cast<std::chrono::nanoseconds>(stop2-stop).count()<<" "<<(int)ipcka.ip2.a<<std::endl;
-    /*
-    if (this->data_counter % 5) {
-
-        emit uiValuesChanged(this->robot_data.EncoderLeft, 11, 12);
-    }
-
-    this->data_counter++;
-    */
-
     return 0;
 }
 
 int MainWindow::processThisLidar(LaserMeasurement laserData, int address) {
 
     IP ipcka;
-    ipcka.ip = address;
-    //std::cout << "doslo odtialto callback" << (int)ipcka.ip2.a << std::endl;
+    ipcka.ip = address;    
 
     if (usedRobotIps.empty() == false) {
 
@@ -707,8 +682,6 @@ int MainWindow::processThisLidar(LaserMeasurement laserData, int address) {
         }
     }
 
-    // tu mozete robit s datami z lidaru.. napriklad najst prekazky, zapisat do mapy. naplanovat ako sa prekazke vyhnut.
-    // ale nic vypoctovo narocne - to iste vlakno ktore cita data z lidaru
     this->updateLaserPicture = 1;
     update(); //tento prikaz prinuti prekreslit obrazovku.. zavola sa paintEvent funkcia
 
