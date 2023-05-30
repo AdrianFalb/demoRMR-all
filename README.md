@@ -16,4 +16,5 @@ Therefore, interaction with these robots needs to transition from expert systems
 The aim of this bachelor thesis is to explore the current state of the problem of controlling a group of remote robots and propose a natural interaction approach with this group of robots.
 
 
-This is the code of the designed human-machine interface responsible for controlling the a group of mobile robots with a maximum size of 3.
+This program of the designed human-machine interface is responsible for controlling the group of mobile robots.
+The program responsible for gesture recognition can be found here: https://github.com/AdrianFalb/SkeletonTracker
