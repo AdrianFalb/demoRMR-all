@@ -1,8 +1,10 @@
 # Design of Native Human Interaction with a Group of Remote Robots
 
-Slovak University of Technology in Bratislava/
-Institute of Robotics and Cybernetics Faculty of Electrical Engineering and Informatics/
-2022/2023/
+Slovak University of Technology in Bratislava
+
+Institute of Robotics and Cybernetics Faculty of Electrical Engineering and Informatics
+
+2022/2023
 
 ## BACHELOR THESIS ASSIGNMENT
 Language of the Thesis: Slovak language
