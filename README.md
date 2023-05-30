@@ -2,7 +2,7 @@
 
 Slovak University of Technology in Bratislava
 
-Institute of Robotics and Cybernetics Faculty of Electrical Engineering and Informatics
+Institute of Robotics and Cybernetics, Faculty of Electrical Engineering and Informatics
 
 2022/2023
 
@@ -16,4 +16,4 @@ Therefore, interaction with these robots needs to transition from expert systems
 The aim of this bachelor thesis is to explore the current state of the problem of controlling a group of remote robots and propose a natural interaction approach with this group of robots.
 
 
-This is a human-machine interface used for controlling a group of remote mobile robots with the maximum size of 3.
+This is the code written in C++ of the human-machine interface responsible for controlling the robots.
